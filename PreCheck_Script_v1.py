@@ -1,8 +1,7 @@
 ############################################################################################
 #
-#author        :   Omprakash Tiwari(omprakash.tiwari@wipro.com)
+#author        :   Omprakash Tiwari
 #version       :   1.0
-#Organization  :   Wipro
 #title         :   PreCheck_script
 #description   :   This script will run the health check for pre unix patching servers and generats the report. 
 
