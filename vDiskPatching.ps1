@@ -3,7 +3,7 @@
 #developer     : Omprakash Tiwari
 #version       : 1.0
 #title         : PVS vDisk Patching
-#description   : This script will check the status of Pandora service and restart Services in Servers
+#description   : it's a standalone solution for vDisk provisioning in citrix provisioning environmnet.
 ############################################################################################################################################
 
 [Parameter(Mandatory = $true)]$vDiskPath =
