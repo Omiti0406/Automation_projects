@@ -1,10 +1,8 @@
 
 ############################################################################################################################################
-
-#author        : Omprakash Tiwari(omprakash.tiwari@wipro.com)
+#developer     : Omprakash Tiwari
 #version       : 1.0
 #title         : PVS vDisk Patching
-#Organization  : Wipro
 #description   : This script will check the status of Pandora service and restart Services in Servers
 ############################################################################################################################################
 
