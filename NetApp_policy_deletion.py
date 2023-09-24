@@ -1,12 +1,10 @@
 ############################################################################################
 #
-#author        :   Omprakash Tiwari(omprakash.tiwari@wipro.com)
+#author        :   Omprakash Tiwari
 #version       :   1.0
-#Organization  :   Wipro
 #title         :   NetApp_export_policy_deletion_script
 #description   :   The automation script will login to the storage cluster and delete the
 #                  NetApp export policies for the requested servers 
-
 #######################################################################################################
 import paramiko
 import socket
