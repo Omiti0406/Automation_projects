@@ -2,7 +2,7 @@
 ############################################################################################################################################
 #
 # -*- coding: utf-8 -*-
-#author        :   Omprakash Tiwari
+#Developer     :   Omprakash Tiwari
 #version       :   1.0
 #title         :   Moogsoft alert supression.py
 #description   :   This script will create maintanence window for the requested servers in Moogsoft portal.
