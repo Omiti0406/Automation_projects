@@ -1,0 +1,46 @@
+---
+###################################################################################
+# Usecase Name: Network Tunnel Down Solution
+# Playbook description: This playbook will fetch the INC tickets from ServiceNow  
+#                       for Tunnel Down, it'll process the INCs 
+#                       and perform the defined automation executions.
+# Version: v1.0
+# Developer: Kajal Kumari(kajal.kumari11@wipro.com)
+###################################################################################
+- hosts: localhost
+  gather_facts: no
+  tasks:
+  - name: main block to search for network memory utilization tickets
+    block:
+    - name: fetch the incidents
+      include_role: 
+        name: network_tunnel_down_solution
+        tasks_from: fetch_inc
+    - name: Total fetched Tickets details 
+      debug:
+        msg: "{{ tickets }}"
+      when: tickets != []
+     
+    - debug:
+        msg: "No tickets found"
+      when: tickets == [] 
+    
+    - name: success ticket list
+      set_fact:
+        success_tickets: []
+        
+    - name: call process_inc task for incident processing 
+      include_role: 
+        name: network_tunnel_down_solution
+        tasks_from: process_inc
+      vars:
+        ticket: "{{item}}"
+      with_items: "{{tickets}}"
+      when: tickets != []
+
+    - name: set metering matric 
+      set_stats:
+        data:
+          success_ticket_list: "{{success_tickets | unique}}"
+        per_host: no
+      when: success_tickets is defined and success_tickets != []

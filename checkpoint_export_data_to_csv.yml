@@ -1,0 +1,40 @@
+---
+- name: export to csv
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - roles/checkpoint_remove_hosts/vars/external_vars.yml
+
+  tasks:
+  - name: task to create csv report for disabled rule
+    block:
+    - name: set the export data
+      set_fact:
+        disabled_obj_data: "{{obj_data}}"
+    - name: export data to csv 
+      win_shell: |
+        $path = "{{csv_input_path}}"
+        $data = "{{item}}" 
+        $data= $data -split("/")
+        if (Test-Path -Path $path) {
+            $data2 = $data -join ','
+            
+            add-content -path "{{csv_input_path}}" -value "$data2"
+        }
+        else {
+            $headers = "ChangeNo", "Host", "Rule", "Layer", "CreationTime"
+            $custObj = [PSCustomObject]@{
+                $headers[0] = $data[0]
+                $headers[1] = $data[1]
+                $headers[2] = $data[2]
+                $headers[3] = $data[3]
+                $headers[4] = $data[4]
+            } 
+            $custObj | Export-Csv -LiteralPath $path -NoTypeInformation
+        }
+      loop: "{{disabled_obj_data}}"
+      delegate_to: "{{wintel_host}}"
+    rescue:
+    - name: failed to export data to csv file
+      debug:
+        msg: "Error occured, failed to export data to csv"

@@ -1,0 +1,35 @@
+---
+- hosts: localhost
+  gather_facts: no
+  no_log: false
+  tasks:
+  - block:
+      - name: block to fetch incidents
+        include_role:
+          name: wintel_cpu_utilization_updated
+          tasks_from: fetch_inc
+      - name: total fetched tickets details
+        debug:
+          msg: "{{ tickets }}"
+        when: tickets != []
+      - name: no maching incidents found
+        debug:
+          msg: No tickets found
+        when: tickets == []
+      - name: success ticket list for metering
+        set_fact:
+          success_tickets: []
+      - name: include role to process fetched incidents
+        include_role:
+          name: wintel_cpu_utilization_updated
+          tasks_from: process_inc
+        vars:
+          ticket: "{{ item }}"
+        with_items: "{{ tickets }}"
+        when: tickets != []
+      - name: set metering matric
+        set_stats:
+          data:
+            success_ticket_list: "{{success_tickets | unique}}"
+          per_host: no
+        when: success_tickets is defined and success_tickets != []

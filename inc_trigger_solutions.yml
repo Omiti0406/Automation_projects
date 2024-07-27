@@ -1,0 +1,19 @@
+---
+- name: Fetch incidents from db and trigger mapped solutions
+  hosts: localhost
+  gather_facts: no
+  vars_files:
+    - roles/ansible_db_integration/vars/main.yml
+  tasks:
+    - block:
+        - name: calling script to trigger solutions
+          shell: python3 'roles/ansible_db_integration/tasks/trigger_solutions.py' "{{db_host}}" "{{db_name}}" "{{db_user}}" "{{db_pass}}" "{{awx_user}}" "{{awx_pass}}" "{{awx_instance}}"
+          register: output
+
+        - name: script output
+          debug:
+            msg: "response - {{output.stdout_lines}}\n Errors - {{output.stderr_lines}}"
+      rescue:
+        - name: Failed to trigger the solutions
+          debug: 
+            msg: "Error occured: unable to trigger the mapped solution."

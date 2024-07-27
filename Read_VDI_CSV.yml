@@ -1,0 +1,52 @@
+---
+###################################################################################
+# Usecase Name: VDI Decommision (This playbook will read the sctask from CSV file )
+# Playbook description: This playbook will read the data from CSV file and call 
+#                       the other main template
+# Version: v1.0
+# Developer: Mayur Matey
+# Org: Wipro
+###################################################################################
+- hosts: localhost
+  gather_facts: no
+  tasks:
+  - block:
+    - include_role: 
+        name: VDI_Decomission 
+        tasks_from: Read_Csv_file
+    
+    - name: Total fetched Tickets details 
+      debug:
+        msg: "{{ sctasks }}"
+      when: sctasks != []
+     
+    - name: No tickets found debug message 
+      debug:
+        msg: "No tickets found"
+      when: sctasks == [] 
+
+
+    - name: calling another template
+      uri:    
+       url: "https://awx.wrkld-awx-1-prod.k8s.ntrs.com/api/v2/job_templates/{{ template_id }}/launch/"
+       method: POST
+       validate_certs: no
+       return_content: yes
+       user: "{{my_user}}"
+       password: "{{my_pass}}"  
+       force_basic_auth: yes
+       status_code: 201
+       body_format: json 
+       body: 
+           extra_vars:
+              ticket: "{{ item }}"
+       headers:
+        Content-Type: "application/json"
+      register: response
+      loop: "{{ sctasks }}"     
+    - debug:
+        msg: "{{response}}"
+     
+                
+    
+  

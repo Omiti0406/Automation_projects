@@ -1,0 +1,73 @@
+---
+- name: Manage Check Point Firewall using mgmt_cli
+  hosts: localhost 
+  gather_facts: no
+  vars_files:
+    - roles/checkpoint_remove_hosts/vars/external_vars.yml
+  tasks:
+  - name: Call checkpoint_remove_host for every individual host. 
+    block:
+    - set_fact:
+        succ_terminated_nodes: []
+        failed_nodes: []
+        error_log: []
+        failure_event: ""
+        success_hosts: ""
+        failed_hosts: ""
+    - set_fact:
+        hosts_list: "{{hosts_list | split(',')}}"
+    - include_role:
+        name: checkpoint_remove_hosts
+        tasks_from: checkpoint_remove_hosts
+      loop: "{{hosts_list}}"
+      loop_control:
+        loop_var: ip_address
+    - name: Set metering metric "succes_list"
+      set_stats:
+        data: 
+          success_list: "{{success_host_list | unique}}"
+        per_host: no
+      when: success_host_list != []
+    - name: Set metering metric "succes_list"
+      set_stats:
+        data: 
+          success_list: []
+        per_host: no
+      when: success_host_list == [] 
+    - name: failure logs formatting for email body 
+      set_fact:
+        failure_event: "{{failure_event + '<br />' +item}}"
+      loop: "{{failure_details}}"
+    - name: success list formatting for email body 
+      set_fact:
+        success_hosts: "{{success_hosts + '<br />' +item}}"
+      loop: "{{success_host_list}}"
+    - name: failed list formatting for email body 
+      set_fact:
+        failed_hosts: "{{failed_hosts + '<br />' +item}}"
+      loop: "{{failed_host_list}}"
+    - name: call send_mail task
+      include_role:
+        name: checkpoint_remove_hosts
+        tasks_from: send_mail
+      vars: 
+        mail_body: "{{mail_body_phase_1}}"
+        mail_sub: "{{mail_sub_phase_1}}"
+    - debug:
+        msg: "succ- {{success_host_list}}"
+    - debug:
+        msg: "failed- {{failed_host_list}}"
+    - debug:
+        msg: "fail_detail- {{failure_details}}"
+    - debug:
+        msg: "disabled_obj_data- {{disabled_obj_data}}"
+    - debug:
+        msg: "Errors: {{error_log}}"
+    - command: date  +"%Y-%m-%d::%H:%M:%S" 
+      register: timestamp
+    - set_stats:
+        data:
+            obj_data: "{{disabled_obj_data}}"
+    rescue:
+    - debug:
+        msg: "Error occured, unable to perform host removal activity..."

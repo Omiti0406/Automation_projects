@@ -1,0 +1,57 @@
+---
+###################################################################################
+# Usecase Name: Tlog Backup MSSQL Backup Use Case 
+# Playbook description: This playbook will fetch the INC tickets from ServiceNow  
+#                       and call the process_inc.yml playbook to process indivdual 
+#                       tickets.
+# Version: v1.0
+# Developer: Nikhil Veer (nikhil.veer1@wipro.com)
+###################################################################################
+
+
+- hosts: localhost
+  gather_facts: no
+  tasks:
+  - block:
+    - name: call fetch_inc playbook
+      include_role: 
+        name: Tlog_Backup_MSSQL_Backup
+        tasks_from: fetch_inc
+    - name: Total fetched Tickets details 
+      debug:
+        msg: "{{ tickets }}"
+      when: tickets != []
+     
+    - name: No tickets found debug message 
+      debug:
+        msg: "No tickets found"
+      when: tickets == [] 
+    
+    - debug:
+        msg: "{{tickets}}"
+    
+
+    - name: calling another template
+      uri:    
+       url: "https://awx.wrkld-awx-1-prod.k8s.ntrs.com/api/v2/job_templates/{{ template_id }}/launch/"
+       method: POST
+       validate_certs: no
+       return_content: yes
+       user: "{{ansible_user}}"
+       password: "{{ansible_password}}"
+       force_basic_auth: yes
+       status_code: 201
+       body_format: json 
+       body: 
+           extra_vars:
+              ticket: "{{ item }}"
+       headers:
+        Content-Type: "application/json"
+      register: response
+      loop: "{{ tickets }}"   
+    - debug:
+        msg: "{{response}}"
+
+
+
+  

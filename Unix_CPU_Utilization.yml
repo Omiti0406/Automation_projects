@@ -1,0 +1,45 @@
+---
+###################################################################################
+# Usecase Name: UNIX CPU utilization
+# Playbook description: This playbook will fetch the INC tickets from ServiceNow  
+#                       and call the process_inc.yml playbook to process indivdual 
+#                       tickets.
+# Version: v1.0
+# Developer: Mayur Matey (mayur.matey@wipro.com) 
+# Org: Wipro
+###################################################################################
+- hosts: localhost
+  gather_facts: no
+  tasks:
+  - block:
+    - name: Calling fetch_inc
+      include_role: 
+        name: unix_high_cpu_utilization
+        tasks_from: fetch_inc
+    - name: Total fetched Tickets details 
+      debug:
+        msg: "{{ tickets }}"
+      when: tickets != []
+     
+    - debug:
+        msg: "No tickets found"
+      when: tickets == [] 
+    
+    - name: success ticket list
+      set_fact:
+        success_tickets: []
+    - name: Calling process_inc to process indivdual Tickets   
+      include_role: 
+        name: unix_high_cpu_utilization
+        tasks_from: process_inc
+      vars:
+        ticket: "{{item}}"
+      with_items: "{{tickets}}"
+      when: tickets != []
+
+    - name: set metering matric 
+      set_stats:
+        data:
+          success_ticket_list: "{{success_tickets | unique}}"
+        per_host: no
+      when: success_tickets is defined and success_tickets != []

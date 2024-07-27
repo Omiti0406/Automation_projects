@@ -1,0 +1,44 @@
+---
+###################################################################################
+# Usecase Name: Unix Process SOLUTION 
+# Playbook description: This playbook will fetch the INC tickets from ServiceNow  
+#                       for Unix Process, it'll process the INCs 
+#                       and perform the defined automation executions.
+# Version: v1.0
+# Developer: Kajal Kumari(Kajal.kumari11@wipro.com)
+###################################################################################
+- hosts: localhost
+  gather_facts: no
+  tasks:
+  - block:
+    - include_role: 
+        name: unix_process_solution
+        tasks_from: fetch_inc
+    - name: Total fetched Tickets details 
+      debug:
+        msg: "{{ tickets }}"
+      when: tickets != []
+     
+    - debug:
+        msg: "No tickets found"
+      when: tickets == [] 
+    
+    - name: success ticket list
+      set_fact:
+        success_tickets: []
+        
+    - include_role: 
+        name: unix_process_solution
+        tasks_from: process_inc
+      vars:
+        ticket: "{{item}}"
+      with_items: "{{tickets}}"
+      when: tickets != []
+
+    - name: set metering matric 
+      set_stats:
+        data:
+          success_ticket_list: "{{success_tickets | unique}}"
+        per_host: no
+      when: success_tickets is defined and success_tickets != []
+      

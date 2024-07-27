@@ -1,0 +1,20 @@
+---
+- name: Fetch incidents from servicenow and push it to database
+  hosts: localhost
+  gather_facts: no
+  vars_files:
+    - roles/ansible_db_integration/vars/main.yml
+
+  tasks:
+    - block:
+        - name: calling incident fetching script.
+          shell: python3 'roles/ansible_db_integration/tasks/fetch&push_to_db.py' "{{db_host}}" "{{db_name}}" "{{db_user}}" "{{db_pass}}" "{{snow_instance}}" "{{snow_user}}" "{{snow_passwd}}"
+          register: output
+        
+        - name: script output
+          debug:
+            msg: "response - {{output.stdout_lines}}\n Errors - {{output.stderr_lines}}"
+      rescue:
+        - name: Failed to fetch tickets from servicenow
+          debug: 
+            msg: "Error occured: unable to fetch tickets from snow."

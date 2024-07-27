@@ -1,0 +1,34 @@
+---
+###################################################################################
+# Usecase Name: Tlog Backup MSSQL Backup Use Case 
+# Playbook description: This playbook will fetch the INC tickets from ServiceNow  
+#                       and call the process_inc.yml playbook to process indivdual 
+#                       tickets.
+# Version: v1.0
+# Developer: Nikhil Veer (nikhil.veer1@wipro.com)
+###################################################################################
+
+- hosts: localhost
+  gather_facts: no
+  tasks:
+  - block: 
+    - name: success ticket list
+      set_fact:
+        success_tickets: []
+
+    - name: call process_inc playbook
+      include_role: 
+        name: Tlog_Backup_MSSQL_Backup
+        tasks_from: process_inc
+      when: ticket_detail != []
+
+    - name: set metering matric 
+      set_stats:
+        data:
+          success_ticket_list: "{{success_tickets | unique}}"
+        per_host: no
+      when: success_tickets is defined and success_tickets != []
+
+    
+      
+  

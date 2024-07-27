@@ -1,0 +1,40 @@
+---
+###################################################################################
+# Usecase Name: UNIX LOW DISK UTILIZATION 
+# Playbook description: This playbook will fetch the INC tickets from ServiceNow  
+#                       for UNIX LOW DISK UTILIZATION, it'll process the INCs 
+#                       and perform the defined automation executions.
+# Version: v1.0
+# Developer: Pratiti Srivastava(pratiti.srivastava@wipro.com)
+###################################################################################
+- hosts: localhost
+  gather_facts: no
+  tasks:
+  - name: Fetch and process the tickets
+    block:
+    - name: update job details to db 
+      include_role:
+          name: ansible_db_integration
+          tasks_from: update_job_details
+
+    - name: check the ticket status
+      include_role:
+        name: servicenow_inc
+        tasks_from: state_check
+      vars:
+        inc_no: "{{ticket_data.IncidentNo}}"
+
+    - name: call process_inc to process the individual tickets
+      include_role: 
+        name: unix_low_disk_utilization_db
+        tasks_from: process_inc
+      when: "'New' in inc_state"
+
+    - name: update job status to db 
+      include_role:
+          name: ansible_db_integration
+          tasks_from: update_exec_status
+      vars:
+        final_status: "{{exec_status}}"
+      
+  

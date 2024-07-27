@@ -1,0 +1,47 @@
+---
+###################################################################################
+# Usecase Name: WINTEL HOST DOWN
+# Playbook description: This playbook will fetch the INC tickets from ServiceNow  
+#                       for WINTEL HOST DOWN, it'll process the INCs 
+#                       and perform the defined automation executions.
+# Version: v1.0
+# Developer: Pratiti Srivastava(pratiti.srivastava@wipro.com)
+###################################################################################
+- hosts: localhost
+  gather_facts: no
+  tasks:
+  - name: Fetch and process the tickets
+    block:
+    - include_role: 
+        name: wintel_host_down
+        tasks_from: fetch_inc
+    - name: Total fetched Tickets details 
+      debug:
+        msg: "{{ tickets }}"
+      when: tickets != []
+     
+    - debug:
+        msg: "No tickets found"
+      when: tickets == [] 
+    
+    - name: success ticket list for metering
+      set_fact:
+        success_tickets: []
+        
+    - name: call process_inc to process the individual tickets
+      include_role: 
+        name: wintel_host_down
+        tasks_from: process_inc
+      vars:
+        ticket: "{{item}}"
+      with_items: "{{tickets}}"
+      when: tickets != []
+
+    - name: set metering matric 
+      set_stats:
+        data:
+          success_ticket_list: "{{success_tickets | unique}}"
+        per_host: no
+      when: success_tickets is defined and success_tickets != []
+      
+  

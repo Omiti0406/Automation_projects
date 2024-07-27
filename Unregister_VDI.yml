@@ -1,0 +1,20 @@
+---
+###################################################################################
+# Usecase Name: Unregister VDI
+# Playbook description: This playbook will call the Unregister_VDI_CSV_File playbook
+# Version: v1.0
+# Developer: Mayur Matey
+# Org: Wipro
+###################################################################################
+- hosts: localhost
+  gather_facts: no
+  tasks:
+  - block:
+    - include_role: 
+        name: Unregister_VDI
+        tasks_from: Unregister_VDI_CSV_File 
+    rescue:
+    - name: Update the output if its unable to call the mail playbook 
+      set_fact: 
+        response_msg: "Error Occured while calling the main playbook "  
+      

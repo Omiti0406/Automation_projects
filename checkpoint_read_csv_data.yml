@@ -1,0 +1,30 @@
+---
+- name: read data from csv
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - roles/checkpoint_remove_hosts/vars/external_vars.yml
+  tasks:
+  - name: task to read csv report for disabled rule
+    block:
+    - name: export data to csv 
+      win_shell: |
+        $path= "{{csv_input_path}}"
+        $read_data=Import-Csv -Path $path 
+        foreach($data in $read_data)
+        {
+        $data=$data.changeNo+"|"+$data.Rule +"|"+$data.Layer +"|"+$data.CreationTime
+
+        $data
+        }
+      delegate_to: "{{wintel_host}}"
+      register: read_data
+    - set_fact:
+        inputList: "{{read_data.stdout | split('\r\n') | trim}}"
+    - set_stats:
+        data:
+          csv_data: "{{inputList}}"
+    rescue:
+    - name: failed to read data from csv file
+      debug:
+        msg: "Error occured, failed to read data from csv input file"

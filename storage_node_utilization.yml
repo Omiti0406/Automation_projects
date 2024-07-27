@@ -1,0 +1,52 @@
+---
+###################################################################################
+# Usecase Name: Storage Node utilization
+# Playbook description: This playbook will fetch the INC tickets from ServiceNow  
+#                       and call the process_inc.yml playbook to process indivdual 
+#                       tickets.
+# Version: v1.0
+# Developer: Kajal Kumari(kajal.kumari11@wipro.com)
+###################################################################################
+- hosts: localhost
+  gather_facts: no
+  tasks:
+  - name: Fetch and process the tickets
+    block:
+    - name: Variables to gather the ticket detail
+      set_fact: 
+        tickets: []
+    - include_role: 
+        name: storage_node_utilization
+        tasks_from: fetch_inc
+      loop: "{{Caller}}"
+      loop_control:
+        loop_var: caller_sys_id
+    - name: Total fetched Tickets details 
+      debug:
+        msg: "{{ tickets }}"
+      when: tickets != []
+     
+    - debug:
+        msg: "No tickets found"
+      when: tickets == [] 
+    
+    - name: success ticket list
+      set_fact:
+        success_tickets: []
+        
+    - include_role: 
+        name: storage_node_utilization
+        tasks_from: process_inc
+      vars:
+        ticket: "{{item}}"
+      with_items: "{{tickets}}"
+      when: tickets != []
+
+    - name: set metering matric 
+      set_stats:
+        data:
+          success_ticket_list: "{{success_tickets | unique}}"
+        per_host: no
+      when: success_tickets is defined and success_tickets != []
+      
+  

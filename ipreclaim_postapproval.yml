@@ -1,0 +1,68 @@
+---
+##################################################################
+#      If more than 1 record is found for an ip address,
+#      Network team will get approval from user and run this playbook#
+
+#      This playbook will reclaim ip address from Infoblox and 
+#      update the status based on success or failure.
+#                                                                #
+##################################################################
+- name: Reclaim IP addresses post approval
+  hosts: all
+  gather_facts: no
+  tasks:
+    - include_role:
+        name: ipreclaim_postapproval      
+      vars:
+          infoblox_host: "{{infoblox_host}}" 
+          ipaddress: "{{item}}"
+          user: "{{ansible_user}}"
+          password: "{{ansible_password}}"
+      loop: "{{ip_address.split(',')}}"
+      no_log: true
+      
+    - set_fact:
+         final_flist: ""
+         final_slist: ""
+       
+    - set_fact:
+         final_flist: "{{failure_list|to_nice_yaml|indent(4)}}"
+      when: failure_list is defined
+       
+    - set_fact:
+         final_slist: "{{success_list|to_nice_yaml|indent(4)}}" 
+      when: success_list is defined  
+
+    - name: Set metering metric "list_of_ips"
+      set_stats:
+        data: 
+          list_of_ips: "{{toil_success_list | unique}}"
+        per_host: no
+      when: toil_success_list is defined
+
+    - name: Set metering metric "list_of_ips"
+      set_stats:
+        data: 
+          list_of_ips: []
+        per_host: no
+      when: toil_success_list is not defined
+        
+    - name: Send mail to the network team with the final message
+      community.general.mail:
+        host: "{{mail_server}}"
+        port: "{{mail_port}}"
+        subject: "{{changeNumber}} - IP Reclaim Automation Report"
+        body: |
+               *******************AUTOMATED MAIL - PLEASE DO NOT REPLY**********************
+                 Hi Team,
+                      
+                 Please find the IP Reclaim automation final report.
+                 
+                 Successful IPs:
+                   {{final_slist}}
+                   
+                 Failed IPs:
+                   {{final_flist}}
+        from: "{{From_mailaddress}}"
+        to: "{{To_mailaddress}}"
+      

@@ -1,0 +1,77 @@
+###################################################################################
+# Usecase Name: Remove hosts from F5 Device
+# Playbook description: This playbook will take the F5 Device and hostname as input 
+#     and will remove the hosts from the F5 Device
+# Version: v1.0
+# Developer: Elena Thekkudan Jaison (et129@ntrs.com)
+###################################################################################
+---
+- name: remove hosts from F5 device
+  hosts: localhost
+  gather_facts: no
+  tasks:
+  - block:
+    - name: values to list
+      set_fact:
+        hostname_values_list: "{{hostname_values.split(',')}}"
+    - name: mail send set fact
+      set_fact:
+        mail_sent: ""
+        error_status: ""
+    - name: list debug
+      debug:
+        var: hostname_values_list
+    - name: task called for multiple values
+      include_role:
+           name: f5_remove_hosts  
+           tasks_from: f5_remove_host_multiplehost                       
+      vars:
+          hostname_input: "{{item}}"
+      loop: "{{hostname_values_list}}"      
+    - name: get the hostname and ipaddress of the F5 device
+      include_role:
+        name: f5_remove_hosts
+        tasks_from: f5nslookup 
+    rescue:
+    - name: list debug
+      debug: 
+        msg: "Error while running f5 remove hosts script"
+    - name: status
+      set_fact:
+        error_status: "exec_error"
+
+  - block:     
+
+    - name: Set metering metric "list_of_ips"
+      set_stats:
+        data: 
+          list_of_ips: "{{success_node | unique}}"
+        per_host: no
+      when: success_node is defined
+
+    - name: Set metering metric "list_of_ips"
+      set_stats:
+        data: 
+          list_of_ips: []
+        per_host: no
+      when: success_node is not defined
+    - name: send email with F5 details
+      include_role:
+        name: f5_remove_hosts
+        tasks_from: send_mail
+      vars:
+        mailbody: "{{success_mailbody}}" 
+      when: details_pool is defined and details_pool != ""
+    - name: send email with F5 details
+      include_role:
+        name: f5_remove_hosts
+        tasks_from: send_mail
+      vars:
+        mailbody: "{{failure_mailbody}}"
+      when: mail_sent != "mail_successful" or error_status == "exec_error"
+    rescue:
+    - name: list debug
+      debug: 
+        msg: "Error while sending mail"
+       
+      

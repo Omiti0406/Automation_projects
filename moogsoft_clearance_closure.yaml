@@ -1,0 +1,51 @@
+---
+  - name: Moogsoft Clearance closure
+    hosts: all
+    gather_facts: false
+    vars_files:
+    - roles/Moogsoft_clearance_closure/vars/main.yml
+    tasks:
+      - name: Moogsoft closure vars
+        block:
+          - moogsoft_clearance_closure:
+              user: "{{ user }}"
+              pass: "{{ pass }}"
+              Instance: "{{ Instance }}"
+              createdby: "{{ createdby }}"
+              updatedby: "{{ updatedby }}"
+              state: "{{ state }}"
+              limit: "{{ limit }}"
+              assigned_to: "{{ assigned_to }}"
+              Assignmentgrps: "{{ Assignmentgrps }}"
+              resol_Cat: "{{ resol_Cat }}"
+              resolved_by: "{{ resolved_by }}"
+              resol_Subcat: "{{ resol_Subcat }}"
+              close_state: "{{ close_state }}"
+              close_code: "{{ close_code }}"
+              close_notes: "{{ close_notes }}"
+              last_Worknote: "{{last_Worknote  }}"
+              last_worknoteUpdatedby: "{{ last_worknoteUpdatedby }}"
+              OutputPath: "{{ OutputPath }}"
+            register: output
+            no_log: true
+
+          - debug:
+              var: output.log
+            when: output.log != []
+          - debug:
+              msg: "Automation Succeeded -{{ output.msg }}"
+            when: output.msg is defined
+          - set_fact: 
+              tickets: "{{ output.success_tickets }}" 
+     
+        rescue:
+          - debug:
+              msg: "Automation failed -{{ output.msg }}"
+            when: output.msg is defined
+
+      - name: set metering matric
+        set_stats:
+          data:
+            success_ticket_list: "{{tickets | unique}}"
+          per_host: no
+        when: tickets is defined and tickets != []

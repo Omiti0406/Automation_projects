@@ -1,0 +1,29 @@
+---
+###################################################################################
+# Usecase Name: MSSQL Blocking
+# Playbook description: This playbook will fetch the INC tickets from ServiceNow  
+#                       for MSSQL Blocking, it'll process the INCs 
+#                       and perform the defined automation executions.
+# Version: v1.0
+# Developer: Pratiti Srivastava(pratiti.srivastava@wipro.com)
+###################################################################################
+- hosts: localhost
+  gather_facts: no
+  tasks:
+  - block: 
+    - name: success ticket list
+      set_fact:
+        success_tickets: []
+
+    - name: call process_inc playbook
+      include_role: 
+        name: mssql_blocking
+        tasks_from: process_inc
+      when: ticket_detail != []
+
+    - name: set metering matric 
+      set_stats:
+        data:
+          success_ticket_list: "{{success_tickets | unique}}"
+        per_host: no
+      when: success_tickets is defined and success_tickets != []

@@ -1,0 +1,50 @@
+---
+###################################################################################
+# Usecase Name: Stage_the_script
+# Playbook description: This playbook will fetch the SR tickets from ServiceNow  
+#                       and call the main playbook to process indivdual tickets.
+# Version: v1.0
+# Developer: Omprakash Tiwari(ommprakash.tiwari@wipro.com)
+# Org: Wipro
+###################################################################################
+- hosts: localhost
+  gather_facts: no
+  tasks:
+  - block:
+    - include_role: 
+        name: stage_the_script 
+        tasks_from: fetch_sr_request
+
+    - name: Total fetched SCTASKs details 
+      debug:
+        msg: "{{ tickets }}"
+      when: tickets != []
+     
+    - debug:
+        msg: "No Service request found"
+      when: tickets == [] 
+
+    - name: success ticket list
+      set_fact:
+        success_tickets: []
+
+    - include_role: 
+        name: stage_the_script   
+        tasks_from: process_sr_request
+      vars:
+        sctask: "{{item}}"
+      with_items: "{{tickets}}"
+      when: tickets != []
+    - meta: end_play
+    - name: print successfully executed tickets
+      debug:
+        msg: "Success tickets -> {{success_tickets}}"
+
+    - name: set metering matric 
+      set_stats:
+        data:
+          success_ticket_list: "{{success_tickets | unique}}"
+        per_host: no
+      when: success_tickets is defined
+        
+  

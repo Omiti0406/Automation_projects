@@ -1,0 +1,51 @@
+---
+- name: read data from csv
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - roles/checkpoint_remove_hosts/vars/external_vars.yml
+  tasks:
+  - name: access-rule deletion
+    block:
+    - set_fact:
+        data: "{{csv_data}}"
+        failure_data: []
+        succ_deletion: []
+        failed_deletion: []
+        failure_event: ""
+        failed_list: ""
+        succ_list: ""
+    - name: call delete_rule task
+      include_role:
+        name: checkpoint_remove_hosts
+        tasks_from: delete_rule
+      loop: "{{data}}"
+    - name: failure logs formatting for email body 
+      set_fact:
+        failure_event: "{{failure_event + '<br />' +item}}"
+      loop: "{{failure_data}}"
+    - name: failed list formatting for email body 
+      set_fact:
+        failed_list: "{{failed_list + '<br />' +item}}"
+      loop: "{{failed_deletion}}"
+    - name: success list formatting for email body 
+      set_fact:
+        succ_list: "{{succ_list + '<br />' +item}}"
+      loop: "{{succ_deletion}}"
+    - name: call send_mail task
+      include_role:
+        name: checkpoint_remove_hosts
+        tasks_from: send_mail
+      vars: 
+        mail_body: "{{mail_body_phase_2}}"
+        mail_sub: "{{mail_sub_phase_2}}"
+    - debug:
+        msg: 
+        - "{{failed_deletion}}"
+        - "{{succ_deletion}}"
+        - "{{failure_data}}"
+    rescue:
+    - name: failure msg 
+      debug:
+        msg: "Error occured while deleting the access-rule."
+    
