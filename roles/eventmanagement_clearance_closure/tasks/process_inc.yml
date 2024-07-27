@@ -1,0 +1,85 @@
+---
+##########################################################################
+# Description: This playbook will be triggered to process the individual # 
+#              tickets with the complete workflow.                       #
+##########################################################################
+
+- name: Extracting required inputs from the ticket.
+  block:
+    - name: Pull the incident number
+      set_fact:
+        ticketNo: "{{ticket.number}}"
+        updated_by: "{{ticket.sys_updated_by}}"
+        ticket_worknotes: "{{ticket.comments_and_work_notes}}"
+
+    - name: check the ticket worknotes ##edit when condition, updated_by to system later
+      set_fact: 
+        closed_comments: "{{ticket_worknotes | regex_search('.*?\n\n') | regex_search('The related alert .*? state is now Closed\n\n') }}"
+      when: ticket_worknotes is defined and ticket_worknotes != "" and updated_by is defined and updated_by == "system"
+
+    - include_role:
+        name: servicenow_inc
+        tasks_from: progress
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Automation has started working on the ticket. Automation process id- {{awx_job_id}}"
+      when: closed_comments is defined and closed_comments != ""
+
+  rescue:
+    - include_role:
+        name: servicenow_inc
+        tasks_from: failure_worknotes
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Clearance Closure:\nError occured, Automation is unable to process the ticket, seems like required input parameter is not in proper format.\nManual intervention is required to close the incident"
+
+
+- name: print the inc number
+  debug:
+    msg: "Processing -> {{ticketNo}}"
+
+
+- name: fetch alert id
+  set_fact:
+    alert_id: "{{closed_comments | regex_search('Alert.*? ')}}"
+  when: closed_comments is defined and closed_comments != ""
+
+- debug:
+    msg: 
+      - "{{closed_comments}}"
+      - "{{alert_id}}"
+  when: closed_comments is defined and closed_comments != "" and alert_id is defined and alert_id != ""
+
+- name: close the incident if system updated as alert closed
+  block:      
+    - name: Update and close the ticket.
+      include_role:
+        name: servicenow_inc
+        tasks_from: success
+      vars:
+        inc_no: "{{ticketNo}}"
+        resolve_message: "Closing the incident associated with alert: {{alert_id}}"
+        success_closing_note: "Closed the task associated with alert: {{alert_id}}"
+      when: closed_comments is defined and closed_comments != "" and alert_id is defined and alert_id != ""
+
+    - name: Adding ticket as successfully executed list
+      set_fact:
+        success_tickets: "{{success_tickets + [ticketNo]}}"
+
+  rescue:
+    - name: To capture the errors in the playbook.
+      include_role:
+        name: servicenow_inc
+        tasks_from: failure_worknotes
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Clearance Closure:\nError occured, Automation is unable to close the ticket, hence routing it for manual intervention."
+
+
+- name: clearning the inputs of the ticket at the end
+  set_fact:
+    ticketNo: ""
+    updated_by: ""
+    ticket_worknotes: ""
+    closed_comments: ""
+    alert_id: ""

@@ -1,0 +1,24 @@
+---
+- name: Oracle Control-M Alert
+  block:
+    - name: call oracle_control_m_alert python script
+      shell: python3 roles/control_m_alerts/tasks/oracle_control_m_alerts.py "{{ ansible_user}}" "{{ ansible_password }}" "{{ TicketNumber }}" "{{ jobname }}"
+      register: output
+      no_log: true
+
+    - set_fact:
+        script_out: "{{output.stdout | from_json}}"
+      when: output is success and output.stdout is defined
+    
+    - debug:
+        msg: "{{script_out['log']}}"
+      when: script_out['log'] != []
+
+    - debug:
+        msg: "Error Found: {{script_out['error']}}"
+      when: script_out['error'] != []
+
+  rescue:
+    - set_fact:
+        error_msg: "Error occured: Automation failed.\n{{output}}" 
+    

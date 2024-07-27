@@ -1,0 +1,36 @@
+  - name: ns lookup
+    block:  
+    - name: nslookup run
+      shell: "nslookup {{ f5_host }}"  
+      register: nslookuphostdetails
+      delegate_to: "{{ f5_host }}"
+      ignore_errors: True
+    - block:
+      - name: nslookupvalue assign
+        set_fact: 
+          nslookupvalue: "{{nslookuphostdetails.stdout.split('\n\n')[1]}}" 
+      - name: debug
+        debug: 
+          var: nslookupvalue.find("server can't find")
+      - name: lookup assign
+        set_fact: 
+          f5nslookup: "F5 Device details: \n{{nslookupvalue}}"
+        when: nslookupvalue.find("server can't find") == -1
+      - name: f5nslookup assign
+        set_fact: 
+          f5nslookup: ""
+        when: nslookupvalue.find("server can't find") != -1
+      when: nslookuphostdetails.stdout.find("server can't find") == -1
+      rescue:
+      - name: debug
+        debug: 
+          msg: "Error while doing nslookup"  
+    - name: nslookup run
+      set_fact: 
+          f5nslookup: ""
+      when: nslookuphostdetails.stdout.find("server can't find") != -1
+    rescue:
+    - name: debug
+      debug: 
+         msg: "Error while doing nslookup"
+      

@@ -1,0 +1,16 @@
+  - block:
+    - name: send instructions mail to the partner on successful completion of the request
+      mail:
+        host: "{{mail_server}}"
+        port: "{{mail_port}}"
+        subject: "Remove hosts from F5 Device"
+        from: "{{from_email}}"
+        to: "{{partner_email}}"
+        cc: "{{cc_email}}"
+        body: "{{mailbody}}"
+    - set_fact: 
+        mail_sent: "mail_successful"
+    rescue:
+    - name: error
+      debug:
+        msg: "Error while sending mail"

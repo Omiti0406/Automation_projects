@@ -1,0 +1,103 @@
+---
+###########################################################################
+#                          !!Description!! 
+# This playbook will be called to process the individual SR tickets.
+###########################################################################
+- name: fetching inputs from the ticket
+  block:
+  - set_fact:
+      sctaskNo: "{{sctask.number}}"
+      
+  # - name: To put ticket in-progress state and add the starting worknotes.
+  #   include_role: 
+  #     name: servicenow_sctask    
+  #     tasks_from: progress
+  #   vars:
+  #     sr_number: "{{sctaskNo}}"
+  #     worknotes_msg: "Automation has started working on the ticket. Automation process ID: {{awx_job_id }}"
+  - name: reading LANID and AD group name
+    set_fact:
+      LANID: "{{sctask.u_details.split('Login ID:')[1] | split('\n') | first | trim}}"
+
+  - debug:
+       msg: "LANID is {{LANID}}"      
+  - name: Put a worknotes on the ticket incase of insufficient data
+    include_role:
+      name: servicenow_sctask
+      tasks_from: failure_worknotes
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "Error occured: Insufficient input data, automation is unable to complete the request.\n LAN ID: '{{LANID}}'"
+    when: (LANID is not defined) and  (LANID == "")
+
+  rescue:
+  - include_role:
+      name: servicenow_sctask
+      tasks_from: failure_worknotes
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "Error occured: Automation is unable to find the required input details LoginID from the the ticket."
+ 
+- name: Check the AD server connectivity.
+  block:
+  - wait_for:
+      host: "{{AD_host}}"
+      port: "{{ad_srv_port}}"
+      timeout: "{{ad_srv_timeout}}"
+    register: connCheck
+
+  rescue:
+  - include_role:
+      name: servicenow_sctask
+      tasks_from: failure_worknotes
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "Automation failed to complete the request, AD server is not reachable."
+
+- name: Adding user to AD group   
+  when: (connCheck is defined and connCheck is succeeded)   
+  block:
+  - include_role: 
+      name: citrix_sqn_signature 
+      tasks_from: check_add_user_to_ad_group   
+
+  - name: Closing the ticket
+    include_role:
+      name: servicenow_sctask
+      tasks_from: success
+    vars:
+      sr_number: "{{sctaskNo}}"
+      resolve_message: "{{ad_resolved_message | regex_replace(',', ',\n')}}.\nHence closing the ticket."
+    when: ad_resolved_message is defined and ad_resolved_message != []    
+
+  - name: In case of any failure, adding a worknotes on the ticket and leaving the ticket for manual intervention.
+    include_role:
+      name: servicenow_sctask
+      tasks_from: failure_worknotes
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "{{error_message}}"
+    when: error_message is defined          
+  
+  - name: Add ticket to the metering matrix
+    set_fact:
+      success_tickets: "{{success_tickets + [sctaskNo]}}"
+
+  rescue:
+  - include_role:
+      name: servicenow_sctask
+      tasks_from: failure_worknotes
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "Automation failed to complete the request." 
+
+    
+
+- set_fact:
+    LANID: ""
+    ADGroup: ""
+    sctaskNo: ""
+    connCheck: ""
+    Add_output: ""
+    error_message: "" 
+    ad_resolved_message: ""

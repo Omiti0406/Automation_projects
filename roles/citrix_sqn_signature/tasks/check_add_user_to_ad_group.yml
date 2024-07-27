@@ -1,0 +1,54 @@
+---
+- name: Connect to windows AD server and check AD user
+  block:
+    - name: Check and Add AD user to AD Group
+      win_domain_group_membership:
+        name: "{{ad_grp_item}}"
+        members:
+          - "{{ LANID }}"
+        state: present
+      delegate_to: "{{ AD_host }}"
+      register: Add_output
+      with_items:
+          - "SQN-P-Viewer"
+          - "VAP5-SQNViewer-2.8.67-P-Wks"
+      loop_control:
+          loop_var: ad_grp_item
+
+    - set_fact:
+        add_ouput_list: "{{(add_ouput_list|default([])) + [ad_out_item]}}"
+      with_items: "{{Add_output.results | list}}"
+      loop_control:
+          loop_var: ad_out_item
+
+    # - debug:
+    #     msg: "{{add_ouput_list}}"
+
+    - set_fact:
+        ad_resolved_message: "{{ad_resolved_message|default([]) + [data] }}"
+      vars:
+        data: "User name {{LANID}} is already present in the AD group {{ad_out_item.ad_grp_item}}"
+      when: Add_output is success and ad_out_item.added == [] and LANID in ad_out_item.members
+      with_items: "{{add_ouput_list | list}}"
+      loop_control:
+          loop_var: ad_out_item
+    
+    - set_fact:
+        ad_resolved_message: "{{ad_resolved_message|default([]) + [data] }}"
+      vars:
+        data: "User name '{{LANID}}' is successfully added into the AD group {{ad_out_item.ad_grp_item}}"
+      when: Add_output is success and ad_out_item.added != [] and LANID in ad_out_item.added
+      with_items: "{{add_ouput_list | list}}"
+      loop_control:
+          loop_var: ad_out_item
+    
+    - debug:
+        msg: "{{ad_resolved_message}}"
+
+  rescue:
+    - set_fact:
+        error_message: "Error Occured:\n {% if Add_output.msg is defined %}{{Add_output.msg}}{% elif Add_output.stderr is defined %}{{Add_output.stderr}}{% else %}Unknown error.{% endif %}\n\nManual intervention is required."
+
+
+
+

@@ -1,0 +1,141 @@
+
+    - name: fetch where-used data of the node
+      block:
+      - name: Flag for successfull termination
+        set_fact:
+          succ_exec_check: '0'
+      - name: MGMT show host details
+        shell: "mgmt_cli where-used name '{{ip_address}}'  --format json -d '{{checkpoint_domain}}' -u '{{ checkpoint_username }}' -p '{{ checkpoint_password }}' "
+        register: hostdetails
+        no_log: true
+        delegate_to: "{{checkpoint_host}}"
+      - name: MGMT fetch where-used data of host
+        set_fact: 
+          host_data: "{{ hostdetails.stdout }}"
+      rescue:
+      - name: set flag
+        set_fact:
+          succ_exec_check: 1
+      - name: set failure msg - host data
+        set_fact:
+          host_err: "{{hostdetails.stdout}}"
+      - name: set failure msg - host data
+        set_fact:
+          err_msg: "Error occured: {{host_err.message}}"
+      - name: append the failure log
+        set_fact:
+          failure_details: "{{failure_details + [ip_address +'    '+ host_err.message]}}"  
+      - name: failure msg - host data
+        debug:
+          msg: "{{err_msg}}"
+    
+    - name: initilize required lists
+      block:
+      - name: initilize required lists
+        set_fact:
+            group_uid: []
+            rules_uid: []
+            access_layer_uid: []
+            rule_details: []
+
+    - name: fetch group and access-rule data 
+      block:
+      - name: Flag for successfull termination
+        set_fact:
+          succ_exec_check: '0'
+      - name: set group and access-rule details
+        set_fact: 
+          group_details: "{{host_data['used-directly']['objects']}}"
+          rule_details: "{{host_data['used-directly']['access-control-rules']}}"
+      - name: append group uid to list
+        set_fact:
+          group_uid: "{{group_uid + [item.uid]}}"
+        loop: "{{group_details}}"
+        when: (hostdetails is succeeded) and (succ_exec_check == '0') and (host_data is defined) and (host_data != "")
+      ###### fetching rule source and destinitions
+      - name: fetch mapped access-rules for host
+        when: (rule_details is defined) and (rule_details != "")
+        include_role:
+            name: checkpoint_remove_hosts
+            tasks_from: fetch_rule_details
+        loop: "{{rule_details}}"
+      - set_fact:
+          rule_n_layer_dict: "{{ rules_uid | zip(access_layer_uid) | community.general.dict }}"     # when: rules_for_dest !=[] and rules_for_dest is defined
+      - debug:
+          msg: "fetched groups for node '{{ip_address}}':{{group_uid}}"
+      - name: call group updation playbook
+        include_role:
+          name: checkpoint_remove_hosts
+          tasks_from: call_group_updation.yml
+        loop: "{{group_uid}}"
+        when: (hostdetails is succeeded) and (succ_exec_check == '0') and (host_data is defined) and (host_data != "")
+      ####### fetch access-rule details
+      - name: fetch access-rules details
+        include_role:
+          name: checkpoint_remove_hosts
+          tasks_from: fetch_rule_members
+        loop: "{{rule_n_layer_dict | dict2items}}"
+        when: (hostdetails is succeeded) and (succ_exec_check == '0') and (host_data is defined) and (host_data != "")
+        # when: group_members_detials.results is defined 
+      when: ((hostdetails is succeeded) and (succ_exec_check == '0')) and ((host_data is defined) and (host_data != ""))      
+      rescue:
+      - name: set flag
+        set_fact:
+          succ_exec_check: 1
+      - name: append error log
+        set_fact: 
+          err_msg: "Error while removing group. {{hostdetails.stdout}}"
+      - name: append error log
+        set_fact:
+          error_log: "{{error_log + [err_msg] }}"
+      - name: Error while removing group
+        debug: 
+          msg: "{{err_msg}}"
+      
+    - name: node termination task from checkpoint
+      when: (hostdetails is succeeded) and (succ_exec_check == '0') and (host_data is defined) and (host_data != "")
+      block:
+      - name: Remove the node from the Firewall device
+        command: "mgmt_cli delete host name '{{ ip_address }}' --format json  -d '{{checkpoint_domain}}' -u '{{ checkpoint_username }}' -p '{{ checkpoint_password }}'"
+        register: del_host_ot
+        no_log: true
+        delegate_to: "{{checkpoint_host}}"
+      - name: host removal completed
+        debug:
+          msg: "Host {{ip_address}} has been successfully removed. \nreturn value: \n{{del_host_ot.stderr}}"
+        when: (del_host_ot.stderr is defined) and ('succeeded' in del_host_ot.stderr )
+      rescue:
+      - name: set flag
+        set_fact:
+          succ_exec_check: 1
+      - name: append the failure log
+        set_fact:
+          failure_details: "{{failure_details + [ip_address +'    host deletion failed']}}"
+      - name: append error log
+        set_fact: 
+          err_msg: "Unable to remove the host, error: {{del_host_ot.stdout}}"
+      - name: append error log
+        set_fact:
+          error_log: "{{error_log + [err_msg] }}"
+      - name: failure in node termination from checkpoint
+        debug:
+          msg: "{{err_msg}}"
+    
+    - name: append the successfully terminated nodes in list
+      set_fact:
+        success_host_list: "{{success_host_list + [ip_address]}}"
+      when: succ_exec_check == '0'
+    - name: append the failed nodes list
+      set_fact:
+        failed_host_list: "{{failed_host_list + [ip_address]}}"
+      when: succ_exec_check != '0'
+    - name: set clear node data 
+      set_fact: 
+        host_data: ""
+        rule_n_layer_dict: {}
+        # rule_details: ""
+
+
+    
+    
+

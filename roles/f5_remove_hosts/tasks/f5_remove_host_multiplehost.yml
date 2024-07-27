@@ -1,0 +1,142 @@
+
+  - name: pool details
+    block:
+    - name: Status
+      set_fact:
+        node_deleted_status: "begin"
+        count: 0
+        deleted_rule: ""
+    - name: task called for multiple values
+      include_role:
+           name: f5_remove_hosts  
+           tasks_from: f5_node_details 
+    - name: getting the pool details
+      paramiko_ssh_conn:
+        host: '{{ f5_host }}'        
+        username: '{{ f5_user }}'
+        password: '{{ f5_password }}'
+        commands: ["tmsh list /ltm pool | grep 'ltm pool' | awk '{print $3}'"]  
+      ignore_errors: true
+      register: pool_details
+      no_log: true
+    - name: pool details assign
+      set_fact: 
+         pool_d: "{{ pool_details.result }}"
+    - name: pool
+      set_fact: 
+         pool_det: "{{pool_d.split('[')[1]}}"
+    - name: Pool
+      set_fact: 
+         pool_de: "{{pool_det.split(']')[1]}}"         
+    - name: pool \n split
+      set_fact: 
+         pool_deta: "{{pool_de.split('\n')}}"
+    - name: pool \n replace
+      debug: 
+         msg: "{{pool_deta}}"         
+    - name: pool from one replace
+      set_fact: 
+         pool_detai: "{{pool_deta[1:]}}"         
+    - name: pool from one replace
+      debug: 
+         msg: "{{pool_detai}}"         
+    - name: pool from one replace
+      set_fact: 
+         pool_detail: "{{pool_detai[:-1]}}"         
+    - name: pool from one replace
+      debug: 
+         msg: "{{pool_detail}}"         
+    - name: pool ltm pool split
+      set_fact: 
+         p_details: []
+         pool_mem: []
+         pool_memb: []         
+    - name: pool list 
+      set_fact: 
+         p_details: "{{ p_details + [item_second | trim] }}"
+      loop: "{{ pool_detail }}"
+      loop_control:
+            loop_var: item_second        
+    - name: pool list replace
+      debug: 
+         msg: "{{p_details}}"
+    - name: modifying the pool
+      paramiko_ssh_conn:
+        host: '{{ f5_host }}'
+        username: '{{ f5_user }}'
+        password: '{{ f5_password }}'
+        commands: ["tmsh list /ltm pool '{{item_second}}' members | grep '{{hostname_input}}'"]
+      ignore_errors: true
+      register: pool_mem
+      no_log: true
+      loop: "{{ p_details }}"
+      loop_control:
+            loop_var: item_second
+    - name: pool list replace
+      set_fact: 
+         pool_memb: "{{ pool_memb + [item_second.result] }}"
+         pool_me_details: []
+         pool_mem_details: []
+      loop: "{{pool_mem.results}}"
+      loop_control:
+            loop_var: item_second
+    - name: pool list value
+      set_fact:
+         pool_me_details: "{{ pool_me_details + [item_second.split('\n')[3]] }}"
+         pv1: []
+      loop: "{{pool_memb}}"
+      loop_control:
+            loop_var: item_second        
+    - name: condition check
+      debug:
+         msg: '{{hostname_input}}'
+    - name: pool list value
+      set_fact:
+         pv1: "{{ pv1 + [ item_second.find('hostname_input') ] }}"
+      loop: "{{pool_me_details}}"
+      loop_control:
+            loop_var: item_second
+    when: error_status != "exec_error"
+    rescue:
+      - name: error 
+        debug:
+          msg: "Error while trying to get pool details"
+      - name: status
+        set_fact:
+          error_status: "exec_error"
+    
+  - name: remove pool members
+    block:
+      - name: pool role
+        include_role: 
+           name: f5_remove_hosts  
+           tasks_from: f5_remove_hosts
+        loop: "{{pool_me_details}}"
+        loop_control:
+            loop_var: item_second
+      - name: delete node
+        paramiko_ssh_conn:
+            host: '{{ f5_host }}'        
+            username: '{{ f5_user }}'
+            password: '{{ f5_password }}'
+            commands: ["tmsh delete ltm node {{hostname_input}}"]  
+        ignore_errors: true
+        register: node_remove_details
+        no_log: true
+        when: remove_rules_update is defined and remove_rules_update == true      
+      - name: pool list value
+        set_fact:
+          node_deleted_status: "end"
+        when: node_remove_details is defined and node_remove_details.changed == true
+      - name: task called for multiple values
+        include_role:
+           name: f5_remove_hosts  
+           tasks_from: f5_node_details
+    when: error_status != "exec_error"
+    rescue:
+      - name: error 
+        debug:
+          msg: "Error while trying to remove host from rule and deleting host" 
+      - name: status
+        set_fact:
+          error_status: "exec_error"  

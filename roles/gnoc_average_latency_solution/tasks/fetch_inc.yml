@@ -1,0 +1,38 @@
+---
+######################################################################
+#               !!! fetch_inc.yml !!!                                #
+#                                                                    #
+# Function:                                                          #
+#   - Search for incident assigned to group,return specific fields   #
+#                                                                    #
+#                                                                    #
+######################################################################
+
+- name: Search for incident assigned to group, return specific fields
+  servicenow.servicenow.snow_record_find:
+    username: "{{ snow_user }}"
+    password: "{{ snow_passwd }}"
+    instance: "{{ snow_instance }}"
+    display_value: true
+    table: incident
+    query: "{{snow_query}}"
+    return_fields:
+      - number
+      - opened_at
+      - cmdb_ci
+      - description 
+      - short_description
+  register: ticket
+
+- set_fact:
+    tickets: "{{ticket.record}}"
+
+- include_role:
+    name: servicenow_inc
+    tasks_from: progress
+  vars:
+    inc_no: "{{ticket.number}}"
+    worknotes_msg: "Automation has started working on the ticket. Automation process id- {{awx_job_id}}"
+    ticket: "{{item}}"
+  with_items: "{{tickets}}"
+  when: tickets != []  

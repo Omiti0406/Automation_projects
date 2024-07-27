@@ -1,0 +1,42 @@
+- name: block to  process details
+  block:
+  - name: execute show interface down command
+    paramiko_ssh_conn:
+      host: '{{ target_host }}'
+      username: '{{ ansible_user }}'
+      password: '{{ ansible_password }}'
+      commands: ['en',"sh int {{ interface_name }}"]
+    register: interface_output1
+    no_log: true
+    when: "'npc' in target_host"
+  - name: interface down command output 
+    set_fact:
+      interface_ot: "{{ interface_output1.result }}"
+    when: interface_output1.result is defined
+
+  - name: execute show memory command
+    paramiko_ssh_conn:
+      host: '{{ target_host }}'
+      username: '{{ ansible_user }}'
+      password: '{{ ansible_password }}'
+      commands: ['terminal length 0', 'en', "show int {{ interface_name }}"]
+    register: interface_output2
+    no_log: true
+    when: "'spk' in target_host"
+  - name: interface down command output 
+    set_fact:
+      interface_ot: "{{ interface_output2.result }}"
+    when: interface_output2.result is defined
+
+  rescue:
+  - name: interface down command output for failure
+    set_fact:
+      interface_ot: "{{ interface_output2.msg }}"
+    when: interface_output2.msg is defined
+  - name: interface down command output for failure
+    set_fact:
+      interface_ot: "{{ interface_output1.msg }}"
+    when: interface_output1.msg is defined
+  - name: set execution status flag
+    set_fact:
+          exec_status: "FAILED"

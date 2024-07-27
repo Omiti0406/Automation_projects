@@ -1,0 +1,20 @@
+     
+- name: block to show tunnel details
+  block:
+  - name: execute commands to show tunnel details
+    paramiko_ssh_conn:
+      host: '{{ target_host }}'
+      username: '{{ ansible_user }}'
+      password: '{{ ansible_password }}'
+      commands: ['enable','show clock','show interfaces tunnel {{tunnel}} stats latency']
+    register: latency
+    no_log: true
+  - name: show latency command output 
+    set_fact:
+      avg_msg: "{{ latency.result }}"
+      thres: "{{latency.result.split('Average Round Trip Time : ')[1].split('\n')[0]}}"
+    when: latency is succeeded
+  rescue:
+  - name: command output for failure
+    set_fact:
+      avg_msg: " Error occured!  {{latency.msg}} "

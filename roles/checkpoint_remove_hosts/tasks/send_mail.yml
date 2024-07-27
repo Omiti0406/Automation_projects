@@ -1,0 +1,16 @@
+- block:
+    - name: trigger email to the network team with the execution details
+      mail:
+        host: "{{mail_server}}"
+        port: "{{mail_port}}"
+        subject: "{{mail_sub}}"
+        from: "{{from_email}}"
+        to: "{{partner_email}}"
+        subtype: html
+        body: "{{mail_body}}"
+    - set_fact: 
+        mail_sent: "mail_successful"
+  rescue:
+    - name: send mail failed
+      debug:
+        msg: "Error while sending mail"

@@ -1,0 +1,39 @@
+---
+- name: Addition of AD user to AD Group
+  win_domain_group_membership:
+    name: "{{ ADGroup }}"
+    members:
+      - "{{ LANID }}"
+    state: present
+  delegate_to: "{{ AD_host }}"
+  register: output
+  ignore_errors: true
+  
+- name: To define the success message in successfull execution
+  block:
+  - set_fact:
+      ad_resolved_message: "User name ' {{ LANID }} ' is already present in the AD group named ' {{ ADGroup }} '"
+    when: ((output.added == []) and (output is succeeded))
+  - set_fact:
+      ad_resolved_message: "User named ' {{ LANID }} ' is added into the AD group named ' {{ ADGroup }} '"
+    when: ((output.added != []) and (output is succeeded))
+  - set_fact:
+      success_tickets: "{{success_tickets + [sctaskNo]}}"
+  when: output is not failed
+
+- name: Define the error messages in case of failures
+  block:
+  - set_fact:
+      status_code: 2
+      error_message: "Failed to add user ' {{LANID}} ' in AD Group ' {{ADGroup}} ' due to error: {{output.msg}}."
+    when: output is failed and output.msg is defined
+  - set_fact:
+      status_code: 2
+      error_message: "Execution is failed due to '{{ output.stderr }}'"
+    when: output is failed and output.stderr is defined
+  
+- debug:
+    msg: 
+    - "{{ error_message }}"
+    - "Status code: {{ status_code }}"
+  when: output is failed #error_message is defined and status_code is defined

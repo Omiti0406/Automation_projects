@@ -1,0 +1,24 @@
+
+- name: extract access-rule uid & name (source)
+  set_fact:
+    rules_uid: "{{rules_uid + [item.rule.uid + '_' + item.rule.name + '(source)']}}"
+    access_layer_uid: "{{access_layer_uid + [item.layer.uid + '_' + item.layer.name]}}"
+  when: ('source' in item['rule-columns']) and (item.rule.name is defined)
+- name: extract access-rule uid & name
+  set_fact:
+    rules_uid: "{{rules_uid + [item.rule.uid + '_' + 'None' + '(source)']}}"
+    access_layer_uid: "{{access_layer_uid + [item.layer.uid + '_' + item.layer.name]}}"
+  when: ('source' in item['rule-columns']) and (item.rule.name is not defined)
+
+- name: extract access-rule uid & name (destination)
+  set_fact:
+    rules_uid: "{{rules_uid + [item.rule.uid + '_' + item.rule.name + '(destination)']}}"
+    access_layer_uid: "{{access_layer_uid + [item.layer.uid + '_' + item.layer.name]}}"
+  when: ('destination' in item['rule-columns']) and (item.rule.name is defined)
+- name: extract access-rule uid & name (destination)
+  set_fact:
+    rules_uid: "{{rules_uid + [item.rule.uid + '_' + 'None' + '(destination)']}}"
+    access_layer_uid: "{{access_layer_uid + [item.layer.uid + '_' + item.layer.name]}}"
+  when: ('destination' in item['rule-columns']) and (item.rule.name is not defined)
+
+

@@ -1,0 +1,41 @@
+- name: update ph1
+  block:
+    - name: update back the startTime to db
+      mssql_db_conn:
+        db_host: "wpcholu006.ent.ad.ntrs.com"
+        db_name: "Ansible_AWX"
+        username: ""
+        password: ""
+        incidentNo: "{{ticketNo}}" #"INC007749676"
+        AutomationState: 'Failed'
+        jobID: "{{awx_job_id}}"
+        templateName: "{{awx_job_template_name}}"
+      register: updateCheck
+    - set_fact:
+        db_update_check: "{{updateCheck.result}}"
+    - name: update back the state to db
+      debug: 
+        msg: "{{db_update_check}}"
+  rescue:
+    - debug:
+        msg: "error - failed to update the automation state back to db."
+
+- name: update ph2
+  block:
+    - name: update back the endTime to db
+      mssql_db_conn:
+        db_host: "wpcholu006.ent.ad.ntrs.com"
+        db_name: "Ansible_AWX"
+        username: ""
+        password: ""
+        incidentNo: "{{ticketNo}}" #"INC007749676"
+        AutomationState: 'Failed'
+      register: updateCheck
+    - set_fact:
+        db_update_check: "{{updateCheck.result}}"
+    - name: update back the state to db
+      debug: 
+        msg: "{{db_update_check}}"
+  rescue:
+    - debug:
+        msg: "error - failed to update the automation state back to db."

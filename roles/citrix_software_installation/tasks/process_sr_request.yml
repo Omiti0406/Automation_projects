@@ -1,0 +1,231 @@
+---
+###########################################################################
+#                          !!Description!! 
+# This playbook will be called to process the individual SR tickets.
+###########################################################################
+- name: fetching inputs from the ticket
+  block:
+  - set_fact:
+      sctaskNo: "{{sctask.number}}"
+      ritm_no: "{{sctask.request_item.display_value}}"
+  ## To put ticket in-progress state and add the starting worknotes.
+  - include_role: 
+      name: servicenow_sctask
+      tasks_from: progress
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "Automation has started working on the ticket. Automation process ID: {{awx_job_id }}"
+  - name: reading LANID and AD group name
+    set_fact:
+      Application: "{{sctask.u_details.split('\r\n')[0] | split(':') | last | trim}}"
+      LANID: "{{sctask.u_details.split('\r\n')[1] | split(':') | last | trim}}"
+      ADGroup: "{{sctask.u_details.split('\r\n')[2] | split(':') | last | trim}}"
+  - set_fact:
+      partner_email: "{{LANID}}@ntrs.com"
+  - name: Fetch the RITM details
+    include_role: 
+      name: citrix_software_installation
+      tasks_from: fetch_ritm_details
+  - name: Check the state and count of SCTASKs in the RITM
+    set_fact:
+      sctask_count: "{{ritm_details.json.result | length}}"
+      sctask_state: "{{ritm_details.json.result | map(attribute='state')|list}}"    
+  # Put a worknotes on the ticket incase of insufficient data
+  - include_role:
+      name: servicenow_sctask
+      tasks_from: failure_worknotes
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "Error occured: Insufficient input data, automation is unable to complete the request.\n LAN ID: '{{LANID}}' \n AD Group: '{{ADGroup}}' \n Application: '{{Application}}'"
+    when: (LANID is not defined) or (ADGroup is not defined) or (Application is not defined) or (Application == "") or (ADGroup == "") or (LANID == "")
+
+  # When script is not able to fetch the input details from the ticket
+  rescue:
+  - include_role:
+      name: servicenow_sctask
+      tasks_from: failure_worknotes
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "Error occured: Automation is unable to find the required input details from the the ticket."
+ 
+## THIS BLOCK IS CHECKING THE AD SERVER REACHABILITY ##
+- name: Check the AD server connectivity.
+  block:
+  - wait_for:
+      host: "{{AD_host}}"
+      port: "{{ad_srv_port}}"
+      timeout: "{{ad_srv_timeout}}"
+    register: connCheck
+    
+## In case if the AD server is not reachable, it'll put a work notes on ticket and skip it.
+  rescue:
+  - include_role:
+      name: servicenow_sctask
+      tasks_from: failure_worknotes
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "Automation failed to complete the request, AD server is not reachable."
+  - include_role:
+      name: citrix_software_installation
+      tasks_from: failure_mail
+  - fail:
+      msg: "AD server is not reachable..."
+- name: To process the ticket and adding user to the requested AD group.
+  block: 
+  - debug:
+      msg:
+        - "Lan Id: {{ LANID }}"
+        - "AD Group: {{ ADGroup }}"
+        - "Partner Email: {{partner_email}}"
+        - "Ticket No: {{sctaskNo}}"
+        
+  - name: AD OU validation
+    when: sctask_count == "1"
+    block:
+    - set_fact:
+        ou_validation: "CN={{ADGroup}},{{unrestricted_ou}}"
+    - win_shell: "Get-ADGroup -Filter * -SearchBase '{{ou_validation}}'"
+      register: ou_check_output
+      delegate_to: "{{AD_host}}"
+    rescue:
+    - include_role:
+        name: servicenow_sctask
+        tasks_from: failure_worknotes
+      vars:
+        sr_number: "{{sctaskNo}}"
+        worknotes_msg: "The requested AD Group doesn't belong from {{unrestricted_ou}}, hence routing it for manual intervention."
+
+## calling the playbook to add user to the ad group.
+  - name: workflow for unlicensed applications request
+    when: sctask_count == "1" and ou_check_output is succeeded
+    block:
+    - include_role: 
+        name: citrix_software_installation
+        tasks_from: add_user_to_ad_group 
+    ## To close the ticket  
+    - name: Closing the ticket
+      include_role:
+        name: servicenow_sctask
+        tasks_from: success
+      vars:
+        sr_number: "{{sctaskNo}}"
+        resolve_message: "{{ad_resolved_message}}. Hence closing the ticket."
+      when: output is succeeded and ad_resolved_message is defined    
+## Send the instructions mail to the partner, if request gets completed
+    - include_role:
+        name: citrix_software_installation
+        tasks_from: send_mail
+      when: output is succeeded and ad_resolved_message is defined     
+## In case of any failure, adding a worknotes on the ticket and leaving the ticket for manual intervention.
+    - include_role:
+        name: servicenow_sctask
+        tasks_from: work_notes_only
+      vars:
+        sr_number: "{{sctaskNo}}"
+        worknotes_msg: "{{error_message}} Hence routing the ticket for manual intervention."
+      when: output is failed and (output.msg is defined or output.stderr is defined)    
+    - include_role:
+        name: servicenow_sctask
+        tasks_from: user_assignment
+      vars:
+        sr_number: "{{sctaskNo}}"
+        user_assigned_to: ""
+      when: output is failed and (output.msg is defined or output.stderr is defined)    
+## In case of any failure, send an email to automation team to notify about failure.
+    - include_role:
+        name: citrix_software_installation
+        tasks_from: failure_mail
+      when: (output is failed and (output.msg is defined or output.stderr is defined))       
+    rescue:
+    - include_role:
+        name: servicenow_sctask
+        tasks_from: failure_worknotes
+      vars:
+        sr_number: "{{sctaskNo}}"
+        worknotes_msg: "Error occured: Automation failed to complete the request."
+  - name: workflow for licensed applications requests
+    when: "'Closed Complete' in sctask_state and sctask_count == '2'"
+    block:
+    - name: Validate the user into AD Group
+      win_shell: "Get-ADPrincipalGroupMembership -Identity {{LANID}} | ?{$_.name -contains('{{ADGroup}}')}"
+      register: user_validation
+      delegate_to: "{{AD_host}}"
+
+    - name: When user is not added to AD group
+      when: user_validation.stdout == ""
+      include_role:
+        name: servicenow_sctask
+        tasks_from: work_notes_only
+      vars:
+        sr_number: "{{sctaskNo}}"
+        worknotes_msg: "User is not added to requested AD group, hence routing for manual intervention."
+    - include_role:
+        name: servicenow_sctask
+        tasks_from: user_assignment
+      vars:
+        sr_number: "{{sctaskNo}}"
+        user_assigned_to: ""
+      when: user_validation.stdout == ""
+      
+    - name: send instructions email to the partner
+      when: user_validation.stdout != ""
+      include_role:
+        name: citrix_software_installation
+        tasks_from: send_mail
+    - name: When user is added to AD group
+      when: user_validation.stdout != ""
+      include_role:
+        name: servicenow_sctask
+        tasks_from: success
+      vars:
+        sr_number: "{{sctaskNo}}"
+        resolve_message: "User is added to requested AD group, instructions email has been sent to the partner. Hence closing the ticket."
+    - name: Add ticket to the metering matrix
+      when: user_validation.stdout != ""
+      set_fact:
+        success_tickets: "{{success_tickets + [sctaskNo]}}"
+    rescue:
+    - include_role:
+        name: servicenow_sctask
+        tasks_from: failure_worknotes
+      vars:
+        sr_number: "{{sctaskNo}}"
+        worknotes_msg: "Unable to validate the user into AD group, hence routing for manual intervention."
+  - name: If the approval task is not closed complete
+    when: "'Closed Complete' not in sctask_state and sctask_count == '2'"
+    include_role:
+      name: servicenow_sctask
+      tasks_from: work_notes_only
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "The approval task is not closed yet, hence routing for manual intervention."   
+  - include_role:
+      name: servicenow_sctask
+      tasks_from: user_assignment
+    vars:
+      sr_number: "{{sctaskNo}}"
+      user_assigned_to: ""
+    when: "'Closed Complete' not in sctask_state and sctask_count == '2'"
+  when: (LANID is defined) and (ADGroup is defined) and (Application is defined) and (Application != "") and (ADGroup != "") and (LANID != "")
+
+## In case of any unknown failures, this rescue block will get executed and add a worknotes on the ticket and notify automation team via email
+  rescue:
+  - include_role:
+      name: servicenow_sctask
+      tasks_from: failure_worknotes
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "Automation failed to complete the request." 
+  - include_role:
+      name: citrix_software_installation
+      tasks_from: failure_mail
+  - debug:
+      msg: "Unable to add user {{ LANID }} to the AD Group {{ ADGroup }}."
+- set_fact:
+    Application: ""
+    LANID: ""
+    ADGroup: ""
+    sctaskNo: ""
+    ou_validation: ""
+    partner_email: ""
+  ignore_errors: true

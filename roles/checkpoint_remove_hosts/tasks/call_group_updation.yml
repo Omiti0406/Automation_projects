@@ -1,0 +1,35 @@
+- debug:
+    msg: "updating group: {{item}}"  
+
+- name: execute group modification
+  block:
+  - name: MGMT remove host from the group
+    shell: "mgmt_cli set group name {{item}} members.remove '{{ip_address}}' --format json -d '{{checkpoint_domain}}' -u '{{ checkpoint_username }}' -p '{{ checkpoint_password }}'"
+    register: rm_host_ot
+    no_log: true
+    delegate_to: "{{checkpoint_host}}"    
+  - name: host removal completed
+    debug:
+      msg: "Requested host '{{ip_address}}' has been successfully removed from group '{{item}}. \noutput: {{rm_host_ot.stderr}}"
+    when: (rm_host_ot.stderr is defined) and ('succeeded' in rm_host_ot.stderr)
+  rescue: 
+    - name: set flag
+      set_fact:
+        succ_exec_check: 1
+    - name: append the failure log
+      set_fact:
+        failure_details: "{{failure_details + [ip_address +'-------group_'+ item +'-------not deleted from group']}}"
+    - name: append error log
+      set_fact:
+        err_msg: "Error occured, unable to make any changes in group '{{item}}' properties."
+    - name: append error log
+      set_fact:
+        error_log: "{{error_log + [err_msg] }}"
+    - name: unable to execute group modification
+      debug:
+        msg: "{{err_msg}}"
+
+
+
+
+

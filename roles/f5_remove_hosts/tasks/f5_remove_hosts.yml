@@ -1,0 +1,55 @@
+- name: f5 remove hosts
+  block:
+        - name: modify value
+          set_fact:
+            modify_val: "{{item_second.find(hostname_input)}}"
+            val_hy: "{{item_second}}"
+            v_val: "{{ p_details }}"
+        - name: pool details
+          block:
+            - name: pool member details
+              set_fact: 
+                pool_mem_name: "{{item_second | trim}}"
+            - name: pool member details
+              set_fact: 
+                pool_mem_name_v: "{{pool_mem_name.split('{')[0]}}"                
+          when: modify_val != "-1"
+        - name: modify value
+          debug:
+            msg: "tmsh modify ltm pool {{ p_details[ count | int ] }} members delete {{pool_mem_name_v}}"
+          when: modify_val != "-1"
+        - block:
+          - name: remove rules
+            paramiko_ssh_conn:
+              host: '{{ f5_host }}'        
+              username: '{{ f5_user }}'
+              password: '{{ f5_password }}'
+              commands: ["tmsh modify ltm pool {{ p_details[ count | int ] }} members delete { {{pool_mem_name_v}} }"]  
+            ignore_errors: true
+            register: remove_pool_details
+            no_log: true
+          - name: remove rules update
+            set_fact:
+              remove_rules_update: "{{remove_pool_details.changed}}"              
+              deleted_rule: "{{ deleted_rule , p_details[ count | int ]}}"
+          when: modify_val != "-1"
+          rescue:
+          - name: remove rules rescue
+            debug:
+              msg: "Error while removing pool members from pool" 
+          - name: status
+            set_fact:
+              error_status: "exec_error"           
+        - name: count increment
+          set_fact: 
+            count: "{{ count|int + 1 }}"
+  when: error_status != "exec_error"
+  rescue:
+    - name: list debug
+      debug: 
+        msg: "Error while running f5 remove hosts script"
+    - name: status
+      set_fact:
+        error_status: "exec_error"
+
+

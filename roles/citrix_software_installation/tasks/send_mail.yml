@@ -1,0 +1,94 @@
+- name: Send instructions mail to the partner on successful compelition of the request.
+  mail:
+    host: "{{mail_server}}"
+    port: "{{mail_port}}"
+    subtype: html
+    subject: "{{sctaskNo}} Software Installation Request"
+    from: "{{from_email}}"
+    to: "{{partner_email}}"
+    cc: "{{cc_email}}"
+    attach: software_installation_ss.png
+    body: |
+      {% raw %}
+      <!DOCTYPE html>
+      <html>
+      <body>
+        <p>
+          <b>
+            Dear Partner, <br /><br />Your Software installation request has been
+            completed successfully following are the details
+          </b>
+        </p>
+        <h4>Application Requested:</h4>
+        <h4 style="color: #007add"> {% endraw %} {{ Application }} {% raw %}</h4>
+        <h4 style="color: #c90000">
+          After receiving this Email, Do wait for 30 mins and then follow below
+          steps.<br /><br />How do I install this software?
+        </h4>
+        <ul>
+          <li><h4>Restart your machine</h4></li>
+          <li>
+            <h4>
+              On your Desktop screen, Click on
+              <b style="color: #c90000">Start</b>
+              and select
+              <b style="color: #c90000">Software Center</b>
+            </h4>
+            <img
+              src="cid:software_installation_ss.png"
+            />
+          </li>
+          <li>
+            <h4>
+              Select the application that you wish to install from the
+              <b style="color: #c90000">Application Catalog</b>, and then click
+              <b style="color: #c90000">Install</b>
+            </h4>
+          </li>
+          <li>
+            <p>
+              <b>May I install this software at any time?<br /></b>
+              Yes, Self-installation is designed to make it more convenient for you
+              to install software on your own schedule.
+            </p>
+          </li>
+          <li>
+            <p>
+              <b>
+                Can I access this application on a different Northern Trust PC if I
+                travel to another location?<br />
+              </b>
+              Yes, If you self-install an application using the
+              <b style="color: #c90000">Application Catalog</b>
+              menu item, then this program will be available for you to self-install
+              on any other Northern Trust workstation that you log into. Follow the
+              <b style="color: #c90000">How do I install this software?</b>
+              Procedure listed above while using this alternate PC.
+            </p>
+          </li>
+          <li>
+            <p>
+              <b>
+                What do I do if I see more than one application listed in the
+                Application Catalog list?<br />
+              </b>
+              Select and install the program listed in this message. You may simply
+              ignore entries for programs that you do not recognize or those which
+              are labeled as having been installed 'Successfully'.
+            </p>
+          </li>
+        </ul>
+        <b style="color: #c90000">How do I get help?</b>
+        <b
+          ><br /><br />
+          If you have technical issues with this installation, please contact the
+          Technical Helpdesk</b
+        >
+        <b><br /><br />
+          For other application access queries, please contact IND_NATS_Offshore_Team@ntrs.com
+        </b>
+      </body>
+      </html>
+      {% endraw %}
+    
+  # delegate_to: "{{}}"

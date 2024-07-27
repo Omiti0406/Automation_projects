@@ -1,0 +1,21 @@
+---
+######################################################################
+#               !!! fetch_ritm_details.yml !!!                       #
+#                                                                    #
+# Function:                                                          #
+#   - It's fetch the RITM details of the sctask                      #
+#                                                                    #
+######################################################################
+
+- name: Fetch the RITM details of the ticket
+  uri:
+    url: "https://{{snow_instance}}.service-now.com/api/now/table/sc_task?sysparm_query=parent.number={{ritm_no}}&sysparm_display_value=true"
+    method: GET
+    validate_certs: no
+    return_content: yes
+    user: "{{snow_user}}"
+    password: "{{snow_passwd}}"
+    force_basic_auth: yes
+    status_code: 200
+  register: ritm_details
+

@@ -1,0 +1,23 @@
+- name: update job details to db
+  block:
+    - name: update back the startTime to db
+      mssql_db_conn:
+        db_host: "{{db_host}}"
+        db_name: "{{db_name}}"
+        username: "{{db_user}}"
+        password: "{{db_pass}}"
+        incidentNo: "{{ticket_data.IncidentNo}}" 
+        jobID: "{{awx_job_id}}"
+        templateName: "{{awx_job_template_name}}"
+      register: jobDetails_ot
+    - name: update back the state to db
+      debug: 
+        msg:  "{{jobDetails_ot.result}}"
+      when: jobDetails_ot.result is defined
+    - name: update back the state to db
+      debug: 
+        msg:  "{{jobDetails_ot.msg}}"
+      when: jobDetails_ot.msg is defined
+  rescue:
+    - debug:
+        msg: "error - failed to update job details to db."

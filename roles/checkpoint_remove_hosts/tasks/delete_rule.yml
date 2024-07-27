@@ -1,0 +1,52 @@
+- name: delete access-rules
+  when: item != ""
+  block:
+    - name: fetch accees-rule and layer details
+      set_fact:
+        data: "{{item | split('|')}}"
+        flag_check: "0"
+    - name: fetch accees-rule and layer details
+      set_fact:
+        changeNo: "{{data[0]}}"
+        rule_uid: "{{data[1] | split('_') | first }}"
+        layer_uid: "{{data[2] | split('_') | first}}"
+        deletion_date: "{{data[3] | replace('::',' ') |regex_replace('\\r','')}}"
+    - name: get current datetime 
+      command: date  +"%Y-%m-%d %H:%M:%S" #"%Y.%m.%d-%H.%M.%S"
+      register: curr_date 
+    - name: date & time comparision
+      set_fact:
+        current_date: "{{curr_date.stdout}}"
+    - set_fact:
+        time_comp: "{{ ( (current_date | to_datetime('%Y-%m-%d %H:%M:%S') - deletion_date | to_datetime('%Y-%m-%d %H:%M:%S')).total_seconds() / 3600 ) | int >= 720}}"
+
+    - name: set flag 
+      set_fact:
+        flag_check: "1"
+      when: time_comp == false
+    - name: MGMT delete access-rules
+      when: time_comp == true
+      shell: "mgmt_cli delete access-rule uid '{{rule_uid}}' layer '{{layer_uid}}'  --format json  -d '{{checkpoint_domain}}' -u '{{ checkpoint_username }}' -p '{{ checkpoint_password }}'"
+      register: del_rule_ot
+      no_log: true
+      delegate_to: "{{checkpoint_host}}"
+    - name: access-rule removal completed 
+      debug:
+        msg: "Access-rule {{data[1]}} has been deleted successfully . \noutput: \n{{del_rule_ot.stderr}}"
+      when: (del_rule_ot.stderr is defined) and ('succeeded' in del_rule_ot.stderr)
+    - set_fact:
+        succ_deletion: "{{succ_deletion + [data[1]]}}"
+      when: flag_check == "0"
+  rescue:
+  - set_fact:
+      flag_check: "1"
+  - set_fact:
+      failed_deletion: "{{failed_deletion + [data[1]]}}"
+      when: flag_check == "1"
+  - set_fact:
+      err_msg: "Error occured: unable to delete access-rule '{{del_rule_ot.stdout}}' - {{data[1]}}"
+  - set_fact:
+      failure_data: "{{failure_data + [err_msg]}}"
+  - debug:
+      msg: "{{err_msg}}"
+  

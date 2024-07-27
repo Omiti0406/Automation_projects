@@ -1,0 +1,23 @@
+- name: update job execution status to db
+  block:
+    - name: update back the startTime to db
+      mssql_db_conn:
+        db_host: "{{db_host}}"
+        db_name: "{{db_name}}"
+        username: "{{db_user}}"
+        password: "{{db_pass}}"
+        incidentNo: "{{ticket_data.IncidentNo}}"
+        AutomationState: "{{final_status}}"
+      register: updateCheck
+
+    - name: update back the state to db
+      debug: 
+        msg:  "{{updateCheck.result}}"
+      when: updateCheck.result is defined
+    - name: update back the state to db
+      debug: 
+        msg:  "{{updateCheck.msg}}"
+      when: updateCheck.msg is defined
+  rescue:
+    - debug:
+        msg: "error - failed to update the automation state back to db."

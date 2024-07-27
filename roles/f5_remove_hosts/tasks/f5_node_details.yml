@@ -1,0 +1,46 @@
+- name: f5 node details
+  block:
+      - name: show node
+        paramiko_ssh_conn:
+            host: '{{ f5_host }}'        
+            username: '{{ f5_user }}'
+            password: '{{ f5_password }}'
+            commands: ["tmsh list ltm node {{hostname_input}}"]  
+        ignore_errors: true
+        register: node_details
+        no_log: true
+      - name: node find
+        set_fact:
+          node_find: "{{node_details.result.find('not found')}}"
+      - name: node not found
+        set_fact:
+         details_pool_val: "Unable to find Node details . Node {{hostname_input}} is not present in F5 device\n"  #"{{ pool_me_details + [item.split('\n')[3]] }}"   
+        when: node_find != "-1" 
+      - name: node absent
+        set_fact:
+         node_deleted: "Yes"
+         details_pool_val: " Node {{hostname_input}} is deleted from F5 device. Rule members from which it is deleted are {{deleted_rule}}.\n"  #"{{ pool_me_details + [item.split('\n')[3]] }}"   
+         success_node: "{{success_node + [ hostname_input ]}}"
+        when: node_find != "-1" and node_deleted_status == "end"
+      - name: node present
+        set_fact:
+         details_pool_val: " Node {{hostname_input}} is present in F5 device \n ."
+        when: node_find == "-1"        
+      - name: node present
+        set_fact:
+         node_deleted: "No"
+         details_pool_val: " Node {{hostname_input}} is not deleted from F5 device \n ."  
+        when: node_find == "-1" and node_deleted_status == "end"
+      - name: pool list details
+        set_fact:
+         details_pool: "{{details_pool}} {{details_pool_val}} "    
+        when: node_deleted_status == "end"
+  when: error_status != "exec_error"
+  rescue:
+    - name: list debug
+      debug: 
+        msg: "Error while running f5 node details script"
+    - name: status
+      set_fact:
+        error_status: "exec_error"
+        

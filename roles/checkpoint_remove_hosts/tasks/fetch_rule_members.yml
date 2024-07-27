@@ -1,0 +1,187 @@
+  - name: split access-rule and access-layer uid 
+    set_fact:
+      ruleuid: "{{item.key | split('_') | first | trim}}"
+      layer_uid: "{{item.value | split('_') | first | trim}}"
+      mapped_field: "{{item.key | split('(') | last | split(')') | first}}"
+  - name: fetch details of an individual access-rule
+    shell : "mgmt_cli show access-rule uid '{{ruleuid}}' layer '{{layer_uid}}' --format json  -d '{{checkpoint_domain}}' -u '{{ checkpoint_username }}' -p '{{ checkpoint_password }}'"
+    register: rule_details
+    no_log: true
+    delegate_to: "{{checkpoint_host}}"     
+  - name: set output of rule details
+    set_fact:
+      rule_data: "{{rule_details.stdout}}"
+  - name: extract source and destination field from rule details
+    set_fact:
+      src_mem: "{{rule_data.source}}"
+      dest_mem: "{{rule_data.destination}}"
+  - name: get count of source & destination members
+    set_fact:
+      rule_src_count: "{{src_mem | length}}"
+      rule_dest_count: "{{dest_mem | length}}"
+  
+
+######## Access-rule source manipulation #########   
+  - name: block for removing source and desabling the access-rule 
+    when: (rule_src_count | int) == 1 and (mapped_field == 'source')
+    block:
+    - name: remove source from the access rule
+      command: "mgmt_cli set access-rule uid '{{ruleuid}}' layer '{{layer_uid}}' source.remove '{{ip_address}}' comments '{{changeNo}}' ignore-warnings 'true' ignore-errors 'true' --format json  -d '{{checkpoint_domain}}' -u '{{ checkpoint_username }}' -p '{{ checkpoint_password }}'"
+      register: rm_rule_src_ot
+      no_log: true
+      delegate_to: "{{checkpoint_host}}"
+    - name: source removal completed from rule
+      debug:
+        msg: "source {{ip_address}} has been deleted successfully from access-rule '{{item.key}}'. \noutput: \n{{rm_rule_src_ot.stderr}}"
+      when: (rm_rule_src_ot.stderr is defined) and ('succeeded' in rm_rule_src_ot.stderr)
+    
+    - name:  disable the access rule
+      command: "mgmt_cli set access-rule uid '{{ruleuid}}' layer '{{layer_uid}}' enabled 'false' comments '{{changeNo}}' ignore-warnings 'true' ignore-errors 'true' --format json  -d '{{checkpoint_domain}}' -u '{{ checkpoint_username }}' -p '{{ checkpoint_password }}'"
+      register: rule_del_ot
+      no_log: true
+      delegate_to: "{{checkpoint_host}}"
+    - name: get current datetime 
+      command: date +"%Y-%m-%d::%H:%M:%S" #  "%Y-%m-%d %H:%M:%S"  "%Y.%m.%d-%H.%M.%S"
+      register: timestamp
+      delegate_to: "{{checkpoint_host}}"
+    - name: append data of disabled rules to export to csv
+      when: (rule_del_ot is succeeded) and (rule_del_ot.stderr is defined)
+      set_fact:
+        disabled_obj_data: "{{disabled_obj_data + [changeNo +'/'+ ip_address +'/'+ item.key +'/'+ item.value +'/'+ timestamp.stdout]}}"
+    - name: rule deletion completed
+      debug:
+        msg: "The access-rule '{{item.key}}' has been disabled. \noutput: \n{{rule_del_ot.stderr}}"
+      when: (rule_del_ot.stderr is defined) and ('succeeded' in rule_del_ot.stderr)
+    rescue:
+      - name: set flag
+        set_fact:
+          succ_exec_check: 1
+      - name: append the failure log
+        set_fact:
+          failure_details: "{{failure_details + [ip_address +'-------rule_'+item+'-------unable to desible the rule']}}"  
+      - name: append error log
+        when: rule_del_ot.stdout is defined
+        set_fact:
+          err_msg: "Error occured while desabling the access-rule {{item}}, error: {{rule_del_ot.stdout}}"
+      - name: append error log
+        when: rm_rule_src_ot.stdout is defined
+        set_fact:
+          err_msg:  "Error occured while removing source from the access-rule {{item}}, error: {{rm_rule_src_ot.stdout}}"
+      - name: append error log
+        set_fact:
+          error_log: "{{error_log + [err_msg] }}"
+      - name: unable to execute rule modification
+        debug:
+          msg: "{{err_msg}}"
+
+  - name: block for removing source from access rule
+    when: (rule_src_count | int) > 1 and (mapped_field == 'source')
+    block:
+    - name: remove source from the access rule
+      command: "mgmt_cli set access-rule uid '{{ruleuid}}' layer '{{layer_uid}}' source.remove '{{ip_address}}' comments '{{changeNo}}' ignore-warnings 'true' ignore-errors 'true' --format json  -d '{{checkpoint_domain}}' -u '{{ checkpoint_username }}' -p '{{ checkpoint_password }}'"
+      register: rm_rule_src_ot
+      no_log: true
+      delegate_to: "{{checkpoint_host}}"
+    - name: source removal completed from rule
+      debug:
+        msg: "source {{ip_address}} has been deleted successfully from access-rule '{{item.key}}'. \noutput: \n{{rm_rule_src_ot.stderr}}"
+      when: (rm_rule_src_ot.stderr is defined) and ('succeeded' in rm_rule_src_ot.stderr)
+    rescue:
+      - name: set flag
+        set_fact:
+          succ_exec_check: 1
+      - name: append the failure log
+        set_fact:
+          failure_details: "{{failure_details + [ip_address +'-------rule_'+item+'-------not deleted from source']}}"  
+      - name: append error log
+        set_fact:
+          err_msg: "Error occured while removing source {{ip_address}} the access-rule {{item}}, error: {{rm_rule_src_ot.stdout}}"
+      - name: append error log
+        set_fact:
+          error_log: "{{error_log + [err_msg] }}"
+      - name: unable to execute rule modification
+        debug:
+          msg: "{{err_msg}}"
+
+######## Access-rule destinition manipulation
+  - name: remove node from destination and disable the access rule
+    when: (rule_dest_count | int) == 1 and (mapped_field == 'destination')
+    block:
+    - name: remove destination from the access rule
+      command: "mgmt_cli set access-rule uid '{{ruleuid}}' layer '{{layer_uid}}' destination.remove '{{ip_address}}' comments '{{changeNo}}' ignore-warnings 'true' ignore-errors 'true' --format json  -d '{{checkpoint_domain}}' -u '{{ checkpoint_username }}' -p '{{ checkpoint_password }}'"
+      register: rm_dest_ot 
+      no_log: true
+      delegate_to: "{{checkpoint_host}}"
+    - name: rule deletion completed
+      debug:
+        msg: "Destination has been successfully removed from access-rule '{{item.key}}'. \n output: {{rm_dest_ot.stderr}}"
+      when: (rm_dest_ot.stderr is defined) and ('succeeded' in rm_dest_ot.stderr)
+
+    - name: Disable the access rule
+      command: "mgmt_cli set access-rule uid '{{ruleuid}}' layer '{{layer_uid}}' enabled 'false' comments '{{changeNo}}' ignore-warnings 'true' ignore-errors 'true' --format json  -d '{{checkpoint_domain}}' -u '{{ checkpoint_username }}' -p '{{ checkpoint_password }}'"
+      register: del_rule_ot
+      no_log: true
+      delegate_to: "{{checkpoint_host}}"
+    - name: get current datetime 
+      command: date  +"%Y-%m-%d::%H:%M:%S" 
+      register: timestamp
+      delegate_to: "{{checkpoint_host}}"
+    - name: append data of disabled rules to export to csv
+      when: (del_rule_ot is succeeded) and (del_rule_ot.stderr is defined)
+      set_fact:
+        disabled_obj_data: "{{disabled_obj_data + [changeNo +'/'+ ip_address +'/'+ item.key +'/'+ item.value +'/'+ timestamp.stdout]}}"
+    - name: rule deletion completed
+      debug:
+        msg: "The access-rule '{{item.key}}' has been disabled successfully. \n output: {{del_rule_ot.stderr}}"
+      when: (del_rule_ot.stderr is defined) and ('succeeded' in del_rule_ot.stderr)
+    rescue:
+    - name: set flag
+      set_fact:
+        succ_exec_check: 1
+    - name: append the failure log
+      set_fact:
+        failure_details: "{{failure_details + [ip_address +'-------rule_'+item+'-------rule not disabled ']}}"    
+    - name: append error log
+      when: del_rule_ot.stdout is defined
+      set_fact:
+        err_msg: "Error while disabling the rule, error: {{del_rule_ot.stdout}}"
+    - name: append error log
+      when: rm_dest_ot.stdout is defined
+      set_fact:
+        err_msg: "Error while disabling the rule, error: {{del_rule_ot.stdout}}"
+    - name: append error log
+      set_fact:
+        error_log: "{{error_log + [err_msg] }}"
+    - name: Failure msg for rule deletion
+      debug:
+        msg: "{{err_msg}}"
+
+  - name: block to remove destination from access-rule
+    when: (rule_dest_count | int) > 1 and (mapped_field == 'destination')
+    block:
+    - name: remove destination from the access rule
+      command: "mgmt_cli set access-rule uid '{{ruleuid}}' layer '{{layer_uid}}' destination.remove '{{ip_address}}' comments '{{changeNo}}' ignore-warnings 'true' ignore-errors 'true' --format json  -d '{{checkpoint_domain}}' -u '{{ checkpoint_username }}' -p '{{ checkpoint_password }}'"
+      register: rm_dest_ot
+      no_log: true
+      delegate_to: "{{checkpoint_host}}"
+    - name: rule deletion completed
+      debug:
+        msg: "Destination '{{ip_address}}' has been deleted successfully from access-rule '{{item.key}}' . \n output: {{rm_dest_ot.stderr}}"
+      when: (rm_dest_ot.stderr is defined) and ('succeeded' in rm_dest_ot.stderr)
+    rescue:
+    - name: set flag
+      set_fact:
+        succ_exec_check: 1
+    - name: append the failure log
+      set_fact:
+        failure_details: "{{failure_details + [ip_address +'-------rule_'+item+'-------not deleted from destination']}}"    
+    - name: append error log
+      set_fact:
+        err_msg: "Error while removing host {{ip_address}} the rule, error: {{rm_dest_ot.stdout}}"
+    - name: append error log
+      set_fact: 
+        error_log: "{{error_log + [err_msg] }}"
+    - name: failure in access-rule execution
+      debug:
+        msg: "{{err_msg}}"
+

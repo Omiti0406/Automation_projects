@@ -1,0 +1,98 @@
+---
+##########################################################################
+# Description: This playbook will be triggered to process the individual # 
+#              tickets with the complete workflow.                       #
+##########################################################################
+
+- name: "Extracting required inputs from the tickets"
+  block:
+  - name: "Pull the incident number"
+    set_fact:
+      TicketNumber: "{{ ticket.number }}"
+
+  - name: "Pull the required inputs from ticket"
+    set_fact:
+      jobname: "{{ticket.description.split('JobName = ')[1] | split(' ;')| first | trim }}"
+  
+  - debug:
+      msg: "Job Name is {{jobname}}"
+  
+
+  # To check verify the fetched inputs and update the ticket incase of insufficient data.
+  - name: Updating worknotes incase of insufficient data  from ticket desc
+    include_role:
+      name: servicenow_inc
+      tasks_from: failure_worknotes
+    vars:
+      inc_no: "{{TicketNumber}}"
+      worknotes_msg: "Error occured: Insufficient input data (control-m jobname) or not in proper format, automation is unable to process the incident."
+    when: (jobname is not defined) or (jobname == "")
+  
+  rescue:
+  - name: "Error occurred"
+    include_role:
+      name: servicenow_inc
+      tasks_from: failure_worknotes
+    vars:
+      inc_no: "{{ TicketNumber }}"
+      worknote_msg: "Error occurred: Automation is unable to process the ticket, seems like the required parameters is provided incorrectly."
+
+- name: "Start processing the ticket and call the playbook to execute the Oracle control M alert play."
+  when: (jobname is defined) and (jobname != "")
+  block:
+  - name: "Task to check oracle log check"
+    import_tasks: oracle_control_m_alerts.yaml 
+
+  - name: "Posting the worknotes of script logs."
+    block:
+      - include_role:
+          name: servicenow_inc
+          tasks_from: work_notes_only
+        vars:
+          inc_no: "{{ TicketNumber }}"
+          worknotes_msg: "Output log:\n {{ script_out['log']| join(',\n')}}"
+    when: script_out['log'] != []
+
+  - name: "Is script having error or Failed"
+    block:
+       - include_role:
+            name: servicenow_inc
+            tasks_from: failure_worknotes
+         vars:
+          inc_no: "{{ TicketNumber }}"
+          worknotes_msg: "Control-M Alerts Check Failed, Manual Intervention is required.\nError Output log: {% if script_out['error'] != [] %}{{ script_out['error']| join(',\n') }}{% elif error_msg is defined %}{{error_msg}}{% else %}{{script_out['log']| join(',\n')}}{%endif%}"
+    when: script_out['error'] != [] or (script_out['log'] | regex_search('Control-M Alerts Check Failed')) == "Control-M Alerts Check Failed" or error_msg is defined
+
+
+  - name: "Do this when msg is 'Resolve Ticket'"
+    block:
+      - include_role:
+          name: servicenow_inc
+          tasks_from: success
+        vars:
+          inc_no: "{{ TicketNumber }}"
+          resolve_message: "Control-M Alerts Check Successful. Closing the incident."
+          success_closing_note: "Control-M alert check is successful, hence resolving the ticket."
+    when: (script_out['log'] | regex_search('Control-M Alerts Check Successful')) == "Control-M Alerts Check Successful"
+
+
+  - name: "Adding ticket as successfully, executed list."
+    set_fact:
+      success_tickets: " {{ success_tickets + [TicketNumber] }}"
+
+  rescue:
+    - include_role:
+        name: servicenow_inc
+        tasks_from: failure_worknotes
+      vars:
+        inc_no: "{{ TicketNumber }}"
+        worknotes_msg: "Error occurred: Automation is unable to process the ticket, Manual intervention is required."
+
+- name: "Set the variable value to empty"
+  set_fact:
+    jobname: ""
+    TicketNumber: ""
+    output: ""
+    script_out: ""
+
+
