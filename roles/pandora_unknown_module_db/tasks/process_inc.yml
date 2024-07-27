@@ -1,0 +1,150 @@
+---
+##########################################################################
+# Description: This playbook will be triggered to process the individual # 
+#              tickets with the complete workflow.                       #
+##########################################################################
+
+- name: Extracting required inputs from the ticket.
+  block:
+    - name: extract ticket number and configuration item from the ticket
+      set_fact:
+        ticketNo: "{{ticket_data.IncidentNo}}"
+        server: "{{ticket_data.TargetHost}}"
+    - name:  put ticket in progess
+      include_role:
+        name: servicenow_inc
+        tasks_from: progress
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Automation has started working on the ticket. Automation process id- {{awx_job_id}}"
+    
+    # To check verify the fetched inputs and update the ticket incase of insufficient data.
+    - name: Update insufficient data error on the ticket
+      include_role:
+        name: servicenow_inc
+        tasks_from: failure_worknotes
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Error occured: Insufficient input data, automation is unable to process the incident. \n Server: {{server}}"
+      when: (server is not defined) or (server == "") 
+  rescue:
+    - name: Update unable to read inputs from the ticket error on the ticket
+      include_role:
+        name: servicenow_inc
+        tasks_from: failure_worknotes
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Error occured: Automation is unable to process the ticket, seems like unable to find the effected CI hostname."
+    - name: set execution status flag
+      set_fact:
+          exec_status: "FAILED"
+    
+- name: incident details
+  debug:
+    msg: "Processing -> {{ticketNo}}"
+- name: block to check the server connectivity 
+  block:
+    - name: task to check server connectivity
+      wait_for_connection:
+        timeout: 30
+      register: connCheck
+      delegate_to: "{{server}}"
+  rescue:
+  - name: update the server connectivity error on the ticket
+    include_role:
+      name: servicenow_inc
+      tasks_from: failure_worknotes
+    vars:
+      inc_no: "{{ticketNo}}"
+      worknotes_msg: "Automation is not able to process the ticket, server {{server}} is not reachable."
+  - name: set execution status flag
+    set_fact:
+          exec_status: "FAILED"
+# - debug:  
+#     msg: 
+#       - "server_output{{server}}"
+#       - "connection check output{{connCheck}}"
+
+- name: start processing the ticket and call the playbook to execute the storage commands.
+  block:
+    - name: Calling playbook to execute the commands
+      import_tasks: pandora_unknown_module.yml
+      delegate_to: "{{server}}"
+
+      # Update the output of the executed commands on the ticket.
+    - name: Update the commands output to the ticket worknotes.
+      include_role:
+        name: servicenow_inc
+        tasks_from: work_notes_only
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Current status of pandora agent: \n{{status_ot.stdout}} \n\n start/restart Output: \n {{final_output}}"
+      when: final_output is defined and final_output != ""
+    - name: Update the command execution error to the ticket
+      include_role:
+        name: servicenow_inc
+        tasks_from: work_notes_only
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Error occured \nunable to process the ticket. \n error: {{failed_msg}}"
+      when: failed_msg is defined and failed_msg != ""
+      #Final worknotes on the ticket
+    - name: Update the exit worknotes to the ticket
+      #when: "Pandora FMS Agent is running with PID" not in final_output
+      include_role:
+        name: servicenow_inc
+        tasks_from: work_notes_only
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Automation has added the below comments, engineer can have a look and proceed further."
+      when: "'Pandora FMS Agent is now running with PID' not in final_output"
+    - debug:
+        msg: "final_output-{{final_output}}"
+    - name: close the ticket
+      #when: "Pandora FMS Agent is running with PID" in final_output
+      include_role:
+        name: servicenow_inc
+        tasks_from: success
+      vars:
+        inc_no: "{{ticketNo}}"
+        success_closing_note: "Automation has successfully resolved the ticket."
+        resolve_message: "Automation has successfully resolved the issue, hence closing the ticket"
+      when: "'Pandora FMS Agent is now running with PID' in final_output"
+    - name: set assign to field as empty
+      when: "'Pandora FMS Agent is now running with PID' not in final_output"
+      include_role:
+        name: servicenow_inc
+        tasks_from: user_assignment
+      vars:
+        inc_no: "{{ticketNo}}"
+        user_assigned_to: "" 
+
+    - name: set execution status flag
+      set_fact:
+          exec_status: "SUCCESS"
+      when: exec_status is undefined or exec_status != 'FAILED'
+    - name: set execution status flag
+      set_fact:
+          exec_status: "FAILED"  
+      when: failed_msg is defined and failed_msg != ""
+  when: (server is defined) and (server != "") and (connCheck is succeeded)
+ 
+  # To capture the errors in the playbook.
+  rescue:
+    - name: Update the errors to the ticket in case of unexpected error
+      include_role:
+        name: servicenow_inc
+        tasks_from: failure_worknotes
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Error occured: Automation is unable to process the ticket, hence routing it for manual intervention."
+    - name: Trigger email on failure
+      include_role:
+        name: mail_notification
+        tasks_from: failure_mail
+      vars:
+        ticket_id: "{{ticketNo}}"
+    - name: set execution status flag
+      set_fact:
+          exec_status: "FAILED"
+

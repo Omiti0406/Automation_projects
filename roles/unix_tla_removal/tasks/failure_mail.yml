@@ -1,0 +1,16 @@
+- name: Send mail to the unix team with the final message
+  mail:
+    host: "{{mail_server}}"
+    port: "{{mail_port}}"
+    subject: "{{sctaskNo}} - Automation Failed"
+    from: "{{from_email}}"
+    to: "{{holmes_team_dl}}"
+    # cc: ""
+    body: |
+               *******************AUTOMATED MAIL - PLEASE DO NOT REPLY**********************
+               
+                 Hi Team,
+
+                 Automation Failed to process the request.
+                 Ticket No : {{sctaskNo}}
+                 Automation process ID : {{awx_job_id}}

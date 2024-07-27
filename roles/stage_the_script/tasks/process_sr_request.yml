@@ -1,0 +1,98 @@
+- name: fetching inputs from the ticket
+  block:
+  - set_fact:
+      sctaskNo: "{{sctask.number}}"  
+  - name: To put ticket in-progress state and add the starting worknotes.
+    include_role: 
+      name: servicenow_sctask    
+      tasks_from: progress
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "Automation has started working on the ticket. Automation process ID: {{awx_job_id }}"
+  - name: reading inputs from ticket
+    set_fact:
+      ritmNo: "{{sctask.request_item.display_value}}"
+      ritm_sys_id: "{{sctask.request_item.link | split('sc_req_item/') | last | trim}}"
+      reqNo: "{{sctask.request.display_value}}"
+      tla_name: "{{sctask.u_application_tla.display_value}}"
+         
+  - name: Put a worknotes on the ticket incase of insufficient data
+    include_role:
+      name: servicenow_sctask
+      tasks_from: failure_worknotes
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "Error occured: Insufficient input data, automation is unable to complete the request.\n TLA: '{{tla_name}}'"
+    when: (tla_name is not defined) and (tla_name == "")
+
+  rescue:
+  - include_role:
+      name: servicenow_sctask
+      tasks_from: failure_worknotes
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "Error occured: Automation is unable to find the required input details from the the ticket."
+
+- name: 2nd phase executions block
+  block:
+    - include_tasks: download_attachment.yml
+    - debug: 
+        msg: Attachments downloaded...
+      when: (attachmentCheck is succeeded) and (attachment_flag is undefined or (attachment_flag | int) != 0)
+    - import_tasks: staging_script.yml
+      when: (attachmentCheck is succeeded) and (attachment_flag is undefined or (attachment_flag | int) != 0)
+    - name: updating worknotes for failure
+      include_role:
+        name: servicenow_sctask
+        tasks_from: failure_worknotes
+      vars:
+        sr_number: "{{sctaskNo}}"
+        worknotes_msg: "Automation is unable to stage the script. \n script output: \n {{script_exec_ot}} \n\n Routing it for manual intervention." 
+      when: script_exec_ot is defined and script_exec_ot != "" and 'Copying file successful' not in script_exec_ot
+    - name: updating worknotes for failure
+      include_role:
+        name: servicenow_sctask
+        tasks_from: work_notes_only
+      vars:
+        sr_number: "{{sctaskNo}}"
+        worknotes_msg: "No attachment found  on the ticket or failed to download the attachment, hence routing it for manual intervention." 
+      when: attachment_flag is defined and (attachment_flag | int) == 0
+    - include_role:
+        name: servicenow_sctask
+        tasks_from: user_assignment
+      vars:
+        sr_number: "{{sctaskNo}}"
+        user_assigned_to: ""
+      when: (script_exec_ot is defined and script_exec_ot != "" and 'Copying file successful' not in script_exec_ot) or (attachment_flag is defined and (attachment_flag | int) == 0)
+    - name: closig the ticket on successfull execution
+      include_role:
+        name: servicenow_sctask
+        tasks_from: success
+      vars:
+        sr_number: "{{sctaskNo}}"
+        resolve_message: "Attachment copied successfully to the requested path, hence automation is closing the ticket." 
+      when: script_exec_ot is defined and script_exec_ot != "" and 'Copying file successful' in script_exec_ot
+  rescue:
+  - name: Trigger a failure email in case of any error
+    include_role:
+      name: mail_notification
+      tasks_from:  failure_mail.yml
+    vars:
+      ticket_id: "{{sctaskNo}}"
+      job_name: "{{usecase_job_name}}"
+  - include_role:
+      name: servicenow_sctask
+      tasks_from: failure_worknotes
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "Automation is unable to complete the request, hence routing it for manual intervention."
+      
+- set_fact:
+    sctaskNo: ""
+    ritmNo:  ""
+    ritm_sys_id: ""
+    reqNo: ""
+    tla: ""
+
+
+

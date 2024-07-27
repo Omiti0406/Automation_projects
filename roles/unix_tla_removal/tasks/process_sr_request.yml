@@ -1,0 +1,113 @@
+---
+###########################################################################
+#                          !!Description!! 
+# This playbook will be called to process the individual SR tickets.
+###########################################################################
+- name: fetching inputs from the ticket
+  block:
+  - set_fact:
+      sctaskNo: "{{sctask.number}}"
+      sctaskdetails: "{{sctask.u_details}}"      
+  
+  - name: reading LANID, Name and TLA application to be removed
+    set_fact:
+      name: "{{sctask.u_details.split('Name:') [1].split('\n')[0].strip()}}"
+      LAN_ID: "{{sctask.u_details.split('LAN ID:')[1].split('\n')[0].strip()}}"
+      environment: "{{sctask.u_details.split('Environment:')[1].split('Additiona')[0].strip()}}"
+      short_descr: "{{sctask.short_description}}"
+  
+  - debug:
+      msg: "{{sctaskdetails}}"
+  - set_fact:    
+      tlalist: "{{sctask.u_details | regex_findall('Entitlement: (\\S+)') |join(', ') }}"
+
+  - debug:
+      msg: "{{tlalist}}"
+
+  - set_fact:
+      partner_email: "{{LAN_ID}}@ntrs.com" 
+
+  # When script is not able to fetch the input details from the ticket
+  rescue:
+  - include_role:
+      name: servicenow_sctask
+      tasks_from: failure_worknotes
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "Error occured: Automation is unable to find the required input details from the the ticket."
+    when: (name is not defined) or (login  is not defined) 
+
+
+- name: Python script execution block
+  when: (name != "") and (LAN_ID != "") 
+  block:
+  - name: Execute python script for tla removal
+    shell: python3 'roles/unix_tla_removal/tasks/tla_removal.py' "{{name}}" "{{LAN_ID}}" "{{sctaskNo}}" "{{short_descr}}" "{{hostname}}" "{{ansible_user}}" "{{ansible_password}}" "{{gidnumber_conf}}" "{{loginshell_conf}}" "{{environment}}" "{{tlalist}}"
+    register: tla_removal_python_output
+    no_log: true
+    delegate_to: localhost
+
+  - debug:
+      msg: 
+        - "Python script output:"
+        - "{{tla_removal_python_output}}" 
+    when: tla_removal_python_output is success  
+
+  - name: output
+    set_fact: 
+     tla_removal_output: "{{tla_removal_python_output.stdout}}" 
+    when: tla_removal_python_output is success  
+    
+  - name: Capture failed message
+    set_fact:
+       failed_msg: "Error in completing the requested task, Please check below error"
+    when: ('FAILED VERIFICATION:' in tla_removal_output) or ('failed' in tla_removal_output)  
+  
+  - name: Adding worknotes to the ticket in success scenario
+    include_role:
+      name: servicenow_sctask
+      tasks_from: work_notes_only
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "{{tla_removal_output}}"
+
+  - name: In case of any failure, adding a worknotes on the ticket and leaving the ticket for manual intervention.
+    include_role:
+      name: servicenow_sctask
+      tasks_from: failure_worknotes
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "{{failed_msg}} \n Hence routing the ticket for manual intervention."
+    when: failed_msg is defined and failed_msg != "" 
+
+  - name: closing the STASK after successfull execution
+    include_role:
+      name: servicenow_sctask
+      tasks_from: success
+    vars:
+      sr_number: "{{sctaskNo}}"
+      resolve_message: "{{tla_removal_output}}\n\n, hence closing the ticket"
+      success_closing_note: " All the required actions are taken hence closing the STASK "
+    when: (tla_removal_output is defined and tla_removal_output !="") and ('FAILED VERIFICATION:' not in tla_removal_output)
+  
+  - name: Add ticket to the metering matrix
+    when: tla_removal_output != ""
+    set_fact:
+      success_tickets: "{{success_tickets + [sctaskNo]}}"       
+ 
+  rescue:
+  - include_role:
+      name: servicenow_sctask
+      tasks_from: failure_worknotes
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "Automation failed to complete the request." 
+
+- set_fact:  
+    name: ""
+    LAN_ID: ""
+    sctaskNo: ""
+    Account_Type: ""
+    partner_email: ""
+    failed_msg: ""
+    environment: ""

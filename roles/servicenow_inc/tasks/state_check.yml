@@ -1,0 +1,21 @@
+---
+######################################################################
+#               !!! state_check.yml !!!                                #
+#                                                                  #
+######################################################################
+
+- name: Check the state of the ticket
+  servicenow.servicenow.snow_record_find:
+    username: "{{ snow_user }}"
+    password: "{{ snow_passwd }}"
+    instance: "{{ snow_instance }}"
+    display_value: true
+    table: incident
+    query: "number={{inc_no}}"
+    return_fields:
+      - state
+  register: fetch_tickets
+
+- set_fact:
+    inc_state: "{{fetch_tickets.record[0].state}}"
+

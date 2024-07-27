@@ -1,0 +1,143 @@
+#############################################################
+# Description: This playbook will be called to execute the backup opeartions on the target server #
+#       
+# 
+#############################################################
+---
+
+- name: Execute ps script
+  block:
+  - name: getlog file
+    win_shell: |
+                    $serverName = "{{ sql_server }}" 
+                    $LogPath = "\\{{ sql_server }}\MAINT\Scripts\Logs\MSSQLSERVER\\"
+
+                    function Write-Log {
+                        [CmdletBinding()]
+                        Param(
+                            [Parameter(Mandatory = $True)] [ValidateNotNullOrEmpty()] [Alias("LogContent")] [String]$Message,
+                            [Parameter(Mandatory = $True)] [ValidateNotNullOrEmpty()] [Alias("LogFilename")] [String]$LogFile,
+                            [Parameter(Mandatory = $False)] [ValidateSet("Error", "Warn", "Info", "Start", "End")] [String]$Level
+                        )
+                        Begin {
+                            $VerbosePreference = 'Continue'
+                        }
+                        Process {
+                            $FormatDate = Get-Date -Format "yyyy-mm-dd__hh:mm:ss"
+                            $LogEntry = ""
+                            Switch ($Level) {
+                                'Error' {
+                                    $LogEntry = $FormatDate + " - " + "ERROR: " + $Message
+                                }
+                                'Warn' {
+                                    $LogEntry = $FormatDate + " - " + "WARNING: " + $Message
+                                }
+                                'Info' {
+                                    $LogEntry = $FormatDate + " - " + "INFORMATION: " + $Message
+                                }
+                                'Start' {
+                                    $LogEntry = $Message + "`n" + $FormatDate
+                                }
+                                'End' {
+                                    $LogEntry = $FormatDate + " - `n" + ".............................THIS LOGGING SESSION ENDS HERE.............................."
+                                }
+                            }
+                            $LogEntry | Out-File -FilePath $LogFile -Append
+                        }
+                        End {
+                        }
+                    }
+
+                    try {
+                        $date = (Get-Date -Format ddMMyyyy).ToString()
+                        $LogFile = "$LogPath\" + "Check_LogFile_" + $date + ".log"
+                        $dirPath = "\\$serverName\MAINT\Scripts\Logs\MSSQLSERVER"
+                        $latest = Get-ChildItem -Path $LogPath | Where-Object { $_.Name -match 'backup_db_tlog' } | Sort-Object LastAccessTime -Descending | Select-Object -First 1
+                        if ($latest -ne "") {
+                            $latest.Name
+                            $content = Get-Content($latest.FullName) | Out-String
+                            $content
+                        } else {
+                            $content = "File Not Found"
+                        }
+                    } catch [System.Exception] {
+                        $ErrMsg = "`n" + ($_.Exception.Message).ToString() + $_.InvocationInfo.MyCommand.Name + "`n" + $_.ErrorDetails.Message + "`n"
+                        $ErrMsg += $_.InvocationInfo.PositionMessage + "`n" + $_.CategoryInfo + "`n" + $_.FullyQualifiedErrorId + "`n"
+                        $msg = "Exception Occurred in Start Segment While, " + $Excep + ":- " + $ErrMsg.ToString()
+                        Write-Host $msg -ForegroundColor Magenta
+                    }
+    delegate_to: "{{ sql_server }}.ENT.AD.NTRS.COM"
+    register: LogContent 
+
+  - name: backup output
+    set_fact: 
+     LogContent_output: "{{LogContent.stdout}}"     
+
+  rescue:
+  - name: set the error output 
+    set_fact:
+      response_msg_temp: "Automation Fail to find server path. Please check manually"   
+
+
+- name: Execute ps script
+  when: (LogContent is defined) or (LogContent != "") 
+  block:
+  - name: check success or failed
+    win_shell: |
+                    $LogContent= "{{ LogContent_output }}"
+
+                    Function CheckBakupStatus {
+                        [CmdletBinding()]
+                        param (
+                            [Parameter(Mandatory = $True)]
+                            [ValidateNotNullOrEmpty()]
+                            [Alias("Log_Content")]
+                            [String]$LogContent
+                        )
+
+                        try {
+                            $BackupStatus = "Successful"
+                            $Excep = "Checking Log"
+                            $returnValue = $LogContent | where-Object {$_ -match "Msg" -or $_ -match "Failed"}
+
+                            if (($returnValue -eq "") -or ($returnValue -eq $null)) {
+                                $BackupStatus = "Successful"
+                            } else {
+                                $BackupStatus = "Failed"
+                            }
+                        } catch [Exception] {
+                            $ErrorMessage = $_.Exception.Message
+                            $msg = "Error occurred" + $Excep + ":-" + $ErrorMessage
+                            Write-Host $msg
+                            $BackupStatus = "Failed"
+                        }
+
+                        return $BackupStatus
+                    }
+
+                    try {
+                       # $date = (Get-Date -Format ddMMyyyy).ToString()
+                       # $LogFile = "$LogPath\Check_LogFile_$date.log"
+
+                        $latest.Name;
+
+                        $bkpStatus=CheckBakupStatus -Log_Content $LogContent;
+
+                        $bkpStatus;
+                    } catch [system.exception] {
+                        $ErrMsg = "`n" + ($_.Exception.Message).ToString() + $_.InvocationInfo.MyCommand.Name + "`n" + $_.ErrorDetails.Message + "`n"
+                        $ErrMsg += $_.InvocationInfo.PositionMessage + "`n" + $_.CategoryInfo + "`n" + $_.FullyQualifiedErrorId + "`n"
+                        $msg = "Exception Occurred in Start Segment While, " + $Excep + ":- " + $ErrMsg.ToString()
+                        Write-Host $msg -ForegroundColor Magenta
+                    }
+    delegate_to: "{{ sql_server }}.ENT.AD.NTRS.COM"
+    register: backup_status_check
+      
+  - name: backup output
+    set_fact: 
+     backup_status_check_output: "{{backup_status_check.stdout}}"   
+
+  rescue:
+  - name: set the error output 
+    set_fact:
+      response_msg_temp: "Automation unable to proceed further. \n\nError Occured:{{backup_status_check.cmd}} Please check manually."   

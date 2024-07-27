@@ -1,0 +1,17 @@
+---
+# tasks file for snow_update
+
+- name: Updating SNOW regarding the failure 
+  snow_record:
+    username: "{{ snow_user }}"
+    password: "{{ snow_passwd }}"
+    instance: "{{ snow_instance }}"
+    state: present
+    number: "{{ inc_no }}"
+    data:
+      work_notes : "{{ transfer_msg }}"
+      state: "New"
+      assignment_group: "{{ L2_group }}"
+      assigned_to: ""
+  delegate_to: localhost
+  become: false

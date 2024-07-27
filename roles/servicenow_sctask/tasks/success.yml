@@ -1,0 +1,18 @@
+---
+- name: Update snow incident status worknotes and close notes update
+  snow_record:
+    username: "{{ snow_user }}"
+    password: "{{ snow_passwd }}"
+    instance: "{{ snow_instance }}"
+    state: present
+    table: sc_task
+    number: "{{ sr_number }}"
+    data:
+      work_notes : "{{ resolve_message }}"
+      state: "Closed Complete"
+      #close_code: "Resolved - Unconfirmed"
+      #close_notes: "{{ success_closing_note }}"
+      assigned_to: "{{ snow_user }}"
+  delegate_to: localhost  
+  become: false
+

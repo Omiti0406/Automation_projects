@@ -1,0 +1,35 @@
+#############################################################
+# Description: This playbook will fetch all the unregisterd VDI and create one CSV file and add all 
+# VDI name and there status after that it will create html report and sent to the respective team
+#############################################################
+
+- name: Creating Unregister VDI csv file     
+  block: 
+  - name: Creating CSV File and adding all the Unregistered VDI details
+    script: "roles/Unregister_VDI/tasks/Unregister_VDI.ps1"
+    environment:
+      cluster_user: "{{my_user}}"
+      cluster_pass: "{{my_pass}}"
+    delegate_to: "{{Windows_host1}}"
+    register: CSV_File   
+  
+  - name: Store the output 
+    set_fact: 
+      CSV_File_Created_Output: "{{CSV_File.stdout}}"
+  rescue:
+    - name: Error block if commands not able to executes 
+      set_fact: 
+        response_msg: "Error Occured while executing the powershell script "  
+    
+
+- name: Creating HTML Report to sent a mail    
+  when: (CSV_File_Created_Output is defined) and ('Created the File' in CSV_File_Created_Output)
+  block:
+  - name: Creating HTML Report and sending mail 
+    script: "roles/Unregister_VDI/tasks/Unregister_VDI_Report.ps1"
+    delegate_to: "{{Windows_host1}}"
+    register: Html_Report   
+  rescue:
+    - name: Error block if commands not able to executes 
+      set_fact: 
+        response_msg: "Error Occured while executing the powershell script " 

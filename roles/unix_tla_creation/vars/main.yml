@@ -1,0 +1,21 @@
+---
+snow_instance: "ntnew"
+snow_user: "SYS-IL-HOL-SNOW-P"
+snow_passwd: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          62333136323730346662613730636632613662616133303366623334346264336437626431643636
+          6238346534343437326433373963356338303264366536660a346231336432646664386166646265
+          38323566303030623431623638666665643766333032316664636337633239653637653631666231
+          3139393762363235340a616662316436656539613063643766613535396230346630333239613065
+          3663
+snow_query: "active=true^assignment_group=2fc681830a0a3c2601e18cc86dc1741c^short_descriptionLIKE'Add Employee/Contractor Access'^state=1"
+ad_srv_port: 22
+ad_srv_timeout: 30 
+mail_server: "appmail.ntrs.com"
+mail_port: 25
+from_email: "NoReply@ntrs.com"
+cc_email: "DCTS_Unix_Prod_Support@ntrs.com"
+hostname: "alvin"
+gidnumber_conf: 1915
+loginshell_conf: /bin/ksh 
+

@@ -1,0 +1,28 @@
+---
+######################################################################
+#               !!! fetch_inc.yml !!!                                #
+#                                                                    #
+# Function:                                                          #
+#   - Search for incident assigned to group,return specific fields   #
+#                                                                    #
+#                                                                    #
+######################################################################
+
+- name: Search for incident assigned to group, return specific fields
+  servicenow.servicenow.snow_record_find:
+    username: "{{ snow_user }}"
+    password: "{{ snow_passwd }}"
+    instance: "{{ snow_instance }}"
+    display_value: true
+    table: incident
+    query: "{{snow_query}}"
+    return_fields:
+      - number
+      - opened_at
+      - cmdb_ci
+      - description 
+      - short_description
+  register: fetch_tickets
+
+- set_fact:
+    tickets: "{{fetch_tickets.record}}"

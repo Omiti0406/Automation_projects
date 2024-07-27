@@ -1,0 +1,68 @@
+- name: calling powershell staging script
+  block:
+      - name: Executing staging script 
+        when: attachments_details.record != []
+        win_shell: |    
+                $TLA_Folder_Path = "{{TLA_Folder_Path}}" 
+                $File_Attachment_Path = "{{attachment_path}}\{{reqNo}}"
+
+                try {
+                    $REQ_Number = "{{reqNo}}"
+                    $TLA = "{{tla_name}}"
+                    if((Test-Path -Path "$File_Attachment_Path") -and ((Get-ChildItem -Path $path).count -ne 0))
+                    {
+                      if (Test-Path -Path "$($TLA_Folder_Path)\$($TLA)") {
+                        Write-Output "TLA Path found, creating REQ folder"
+                            
+                        #Creating RITM folder
+                        New-Item -ItemType Directory -Path "$($TLA_Folder_Path)\$($TLA)\$($REQ_Number)" -ErrorAction Stop | Out-Null 
+                            
+                        Write-Output "REQ folder created successfully, Copying the script to REQ folder"
+
+                        #Copying file to RITM folder
+                        Get-ChildItem -Path $File_Attachment_Path -ErrorAction Stop | Copy-Item -Destination "$($TLA_Folder_Path)\$($TLA)\$($REQ_Number)" -ErrorAction Stop | Out-Null
+                                    
+                        Write-Output "Copying file successful !!"
+
+
+                    }
+                    else {
+                        Write-Output "TLA Path not found, creating the TLA folder path"
+
+                        #Creating TLA folder
+                        New-Item -ItemType Directory -Path "$($TLA_Folder_Path)\$($TLA)" -ErrorAction Stop | Out-Null
+                            
+                        Write-Output "TLA folder created successfully"
+
+
+                        #Creating RITM folder
+                        New-Item -ItemType Directory -Path "$($TLA_Folder_Path)\$($TLA)\$($REQ_Number)" -ErrorAction Stop | Out-Null
+                            
+                        Write-Output "REQ folder created successfully, Copying the script to REQ folder"
+
+                        #Copying file to RITM folder
+                        Get-ChildItem -Path $File_Attachment_Path -ErrorAction Stop | Copy-Item -Destination "$($TLA_Folder_Path)\$($TLA)\$($REQ_Number)" -ErrorAction Stop | Out-Null
+
+                        Write-Output "Copying file successful !!"
+                    }  
+                    
+                    }
+
+                    
+                    #Removing the attachment from holmes server 
+                    #Get-ChildItem -Path "{{attachment_path}}" | Remove-Item
+                    
+                }
+                catch {
+                    Write-Host "Error occured: $_"
+                }
+        register: script_output
+        delegate_to: "{{wintel_host}}"
+      - name: set_fact for staging script failure 
+        set_fact: 
+          script_exec_ot: "{{script_output.stdout}}"
+  rescue:
+    - name: set_fact for staging script failure 
+      set_fact: 
+        script_exec_ot: "{{script_output.msg}}"
+      

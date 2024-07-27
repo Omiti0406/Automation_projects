@@ -1,0 +1,14 @@
+- name: Change the state of INC to In-Progress 
+  servicenow.servicenow.snow_record:
+    username: "{{ snow_user }}"
+    password: "{{ snow_passwd }}"
+    instance: "{{ snow_instance }}"
+    state: present
+    table: sc_task
+    number: "{{ sr_number }}"
+    data:
+      state: "2"
+      work_notes: "{{ worknotes_msg }}"
+      assigned_to: "{{ snow_user }}"
+  delegate_to: localhost
+  become: false

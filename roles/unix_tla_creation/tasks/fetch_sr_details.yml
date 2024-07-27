@@ -1,0 +1,60 @@
+---
+######################################################################
+#               !!! fetch_sr_details.yml !!!                         #
+#                                                                    #
+# Function:                                                          #
+#   - Search for SCTASKs assigned to group,return specific fields    #
+#                                                                    #
+#                                                                    #
+######################################################################
+
+#
+# Search for tickets assigned to group, return specific fields
+
+- name: Search for SR assigned to group DCTS-Unix Prod Support, return specific fields
+  servicenow.servicenow.snow_record_find:
+    username: "{{ snow_user }}"
+    password: "{{ snow_passwd }}"
+    instance: "{{ snow_instance }}"
+    display_value: true
+    table: sc_task
+    query: "{{snow_query}}"
+    return_fields:
+      - number
+      - u_details 
+      - short_description  
+    max_records: 70      
+  register: tickets1
+
+# - name: fetch csv details and set flag value
+#   set_fact: 
+#      flag_value: ""
+  
+- set_fact:
+    fetch_list: "{{tickets1.record}}"
+
+- name: fetch ticket descrp and number
+  block:
+    - set_fact:
+        tickets: "{{tickets|default([]) + [check_req]}}"
+      when: (lookup('csvfile', check_req.short_description + ' file=roles/unix_tla_creation/tasks/unix_tla_check.csv delimiter=, col=1' )) != []
+      vars:
+        check_req: "{{item}}"
+      with_items: "{{fetch_list}}"
+  when: fetch_list != []
+
+- debug:
+     msg: "{{tickets}}"
+  when: tickets is defined and tickets != []
+  
+# To put ticket in-progress state and add the starting worknotes.
+- include_role: 
+    name: servicenow_sctask
+    tasks_from: progress
+  vars:
+    sr_number: "{{sctask.number}}"
+    worknotes_msg: "Automation has started working on the ticket. Automation process ID: {{awx_job_id }}"
+    sctask: "{{item}}"
+  with_items: "{{tickets}}"
+  when: tickets is defined and tickets != []
+    

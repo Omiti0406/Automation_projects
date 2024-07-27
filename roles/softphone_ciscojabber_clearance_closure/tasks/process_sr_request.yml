@@ -1,0 +1,59 @@
+---
+##########################################################################
+# Description: This playbook will be triggered to process the individual # 
+#              sctask with the complete workflow.                       #
+##########################################################################
+
+- name: Extracting required inputs from the ticket.
+  block:
+    - name: Pull the sctask number
+      set_fact:
+        sctaskNo: "{{sctask.number}}"
+
+    - include_role:
+        name: servicenow_sctask
+        tasks_from: progress
+      vars:
+        sr_number: "{{sctaskNo}}"
+        worknotes_msg: "Automation has started working on the ticket. Automation process id- {{awx_job_id}}"
+
+  rescue:
+    - include_role:
+        name: servicenow_sctask
+        tasks_from: failure_worknotes
+      vars:
+        inc_no: "{{sctaskNo}}"
+        worknotes_msg: "Clearance Closure:\nError occured, Automation is unable to close the SCTASK, seems like required input parameter is not in proper format.\nManual intervention is required to close the SCTASK."
+
+
+- name: print the sctask number
+  debug:
+    msg: "Processing -> {{sctaskNo}}"
+
+- name: close the sctask as the cisco jabber deprecated
+  block:      
+    - name: Update and close the ticket.
+      include_role:
+        name: servicenow_sctask
+        tasks_from: success
+      vars:
+        sr_number: "{{sctaskNo}}"
+        resolve_message: "Cisco Jabber has been deprecated and replaced by the Webex application, which is installed on every Windows PC by default.\n\nYou can find it in Start > Webex > Webex, or if you can't find it, install it from the Software Center.\n\nFor any further assistance, please contact cisco_voice_support@ntrs.com"
+      
+    - name: Adding ticket as successfully executed list
+      set_fact:
+        success_tickets: "{{success_tickets + [sctaskNo]}}"
+
+  rescue:
+    - name: To capture the errors in the playbook and update error msg in worknotes.
+      include_role:
+        name: servicenow_sctask
+        tasks_from: failure_worknotes
+      vars:
+        sr_number: "{{sctaskNo}}"
+        worknotes_msg: "Clearance Closure:\nError occured, Automation is unable to close the SCTASK, hence routing it for manual intervention."
+
+
+- name: clearning the inputs of the ticket at the end
+  set_fact:
+    sctaskNo: ""

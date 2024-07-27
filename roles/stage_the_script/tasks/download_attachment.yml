@@ -1,0 +1,46 @@
+- block:
+      - name: fetch attachment name and sys id
+        servicenow.servicenow.snow_record_find:
+          username: "{{ snow_user }}"
+          password: "{{ snow_passwd }}"
+          instance: "{{ snow_instance }}"
+          display_value: true
+          table: sys_attachment
+          query: 
+            table_sys_id: "{{ritm_sys_id}}" 
+          return_fields: 
+            - sys_id
+            - file_name
+        register: attachments_details
+        # when: ritm_sys_id != ""
+
+      - name: create RITM folder to download attachment
+        win_file:
+          path: '{{attachment_path}}\{{reqNo}}'
+          state: directory
+        delegate_to: "{{wintel_host}}"
+
+      - name: Fetch attachment contents
+        win_get_url:
+          url: "https://{{snow_instance}}.service-now.com/api/now/attachment/{{attachment.sys_id}}/file"
+          dest: '{{attachment_path}}\{{reqNo}}\{{attachment.file_name}}' 
+          username: "{{snow_user}}"
+          password: "{{snow_passwd}}"
+          force_basic_auth: yes
+        register: attachmentCheck
+        delegate_to: "{{wintel_host}}"
+        loop: "{{attachments_details.record}}"
+        loop_control:
+          loop_var: attachment
+        when: attachments_details.record != []
+      - debug: 
+          msg: "{{attachmentCheck}}"
+      - set_fact:
+            attachment_flag: 0
+        when: attachments_details.record == [] or attachmentCheck.skipped_reason is defined or attachmentCheck.changed == 'false'
+  rescue:
+      - set_fact:
+          attachment_flag: 0
+      - debug: 
+            msg: download_attachment failed, unable to compelte attachments download.
+      

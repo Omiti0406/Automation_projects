@@ -1,0 +1,71 @@
+
+- name: block to execute df -h
+  block:
+  - name: executing command df -h
+    shell: df -h
+    register: df_ot
+  rescue:
+  - name: set the error output of df -h
+    set_fact:
+      failed_msg: "Unable to execute df -h command, hence routing it for manual intervention."
+- name: block to execute pandora status/restart/start commands
+  block: 
+  - name: execute pandora status check command
+    block:
+    - name: command to check pandora status
+      shell: /etc/init.d/pandora_agent_daemon status
+      register: status_ot
+      ignore_errors: true
+    - name: set flag for pandora status if service is running
+      set_fact:
+        flag: 1
+      when: '"Pandora FMS Agent is running with PID" in status_ot.stdout'
+    - name: set flag for pandora status if service is stopped
+      set_fact:
+        flag: 0
+      when: '"Pandora FMS Agent is not running" in status_ot.stdout'
+    rescue:
+    - name: set failure msg for status comand
+      set_fact:
+        failed_msg: "Error executing command /etc/init.d/pandora_agent_daemon status"
+  - name: execute pandora restart command
+    block:
+    - name: execute restart command
+      shell: sudo  /etc/init.d/pandora_agent_daemon restart
+      register: restart_ot
+    - name: set output of restart command
+      set_fact:
+        final_output: "{{restart_ot.stdout}}"
+      when: restart_ot.stdout is defined
+    when: '"Pandora FMS Agent is running with PID" in status_ot.stdout'
+    rescue:
+    - name: set failure msg for restart command
+      set_fact:
+        failed_msg: "Error executing command /etc/init.d/pandora_agent_daemon restart"
+  - name: execute pandora start command
+    block:
+    - name: execute pandora start command
+      shell: sudo  /etc/init.d/pandora_agent_daemon start
+      register: start_ot
+    - name: set output of pandora start command
+      set_fact:
+        final_output: "{{start_ot.stdout}}"
+      when: start_ot.stdout is defined
+    when: '"Pandora FMS Agent is not running" in status_ot.stdout'
+    rescue:
+    - name: set failure msg for pandora start command
+      set_fact:
+        failed_msg: "Error executing command 'sudo  /etc/init.d/pandora_agent_daemon start'"  
+
+  - name: set failure msg for pandora agent if it's unable to start/restart
+    set_fact:
+      failed_msg: "Unable to start/restart the pandora agent."
+    when: flag is not defined
+  when: df_ot is succeeded and '"Filesystem" in df_ot.stdout'
+  
+- block:
+  - name: set failure msg for df -h command
+    set_fact:
+      failed_msg: "Automation can't proceed, 'df -h' command is not working." 
+  when: (df_ot is failed) or (df_ot.rc !=0) #('"Filesystem" not in df_ot.stdout ')
+    

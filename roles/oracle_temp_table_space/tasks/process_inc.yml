@@ -1,0 +1,127 @@
+---
+##########################################################################
+# Description: This playbook will be triggered to process the individual # 
+#              tickets with the complete workflow.                       #
+##########################################################################
+
+- name: Extracting required inputs from the ticket.
+  block:
+    - name: Pull the incident number
+      set_fact:
+        ticketNo: "{{ticket.number}}"
+    - name: pull the required inputs from the ticket
+      set_fact:
+        target_name: "{{ ticket.description.split('TargetName:')[1].split('TargetURL:')[0].strip() }}"
+
+    - name: set fact of databsae name
+      set_fact:
+        database_name: "{{ target_name.split('_')[0] }}"
+
+
+    # To check verify the fetched inputs and update the ticket incase of insufficient data.
+    - name: update the ticket if the inputs are not being pulled properly
+      include_role:
+        name: servicenow_inc
+        tasks_from: failure_worknotes
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Error occured: Insufficient input data, database_name not avaialable, hence automation is unable to process the incident."
+      when: (database_name is not defined) or (database_name == "")
+      
+  rescue:
+    - name: debug
+      debug:
+        msg: "rescue block"
+        
+    - include_role:
+        name: servicenow_inc
+        tasks_from: failure_worknotes
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Error occured: Automation is unable to process the ticket, seems like required input parameters is eighter blank or not in the proper format."
+
+- name: print the inc number
+  debug:
+    msg: "Processing -> {{ticketNo}}"
+      
+
+- name: block to import multiple playbooks.
+  when: (database_name is defined) and (database_name != "")
+  block:    
+
+  - name: Python script execution block
+    block:
+    - name: Execute python script
+      shell: python3 'roles/oracle_temp_table_space/tasks/oracle_temp_table_space.py' "{{awx_job_id}}" "{{database_name}}" "{{ ansible_user }}" "{{ ansible_password }}" "{{OraUser}}" "{{ DBUser }}" "{{ticketNo}}"
+      register: Oracle_TempTable_Python_output
+      no_log: true
+      delegate_to: localhost   
+  
+    - debug:
+        msg: 
+          - "Python script output:"
+          - "{{Oracle_TempTable_Python_output}}" 
+      when: Oracle_TempTable_Python_output is success
+   
+    - name: Oracle_TempTable_output
+      set_fact: 
+        Oracle_TempTable_output: "{{Oracle_TempTable_Python_output.stdout}}"  
+
+    - debug:
+        msg: 
+          - "Success output:"
+          - "{{Oracle_TempTable_output}}" 
+
+    - name: Update the output of the executed commands on the ticket.
+      include_role:
+        name: servicenow_inc
+        tasks_from: work_notes_only
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "{{Oracle_TempTable_output}}"
+    
+     
+    - name: Final worknotes on the ticket
+      include_role:
+        name: servicenow_inc
+        tasks_from: work_notes_only
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Automation has added the below comments, engineer can have a look and proceed further."
+        
+    - include_role:
+        name: servicenow_inc
+        tasks_from: user_assignment
+      vars:
+        inc_no: "{{ticketNo}}"
+        user_assigned_to: ""    
+    - name: Adding ticket as successfully executed list
+      set_fact:
+        success_tickets: "{{success_tickets + [ticketNo]}}"
+ 
+
+  rescue:
+    - name: To capture the errors in the playbook.
+      include_role:
+        name: servicenow_inc
+        tasks_from: failure_worknotes
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Error occured: Automation is unable to process the ticket, hence routing it for manual intervention."
+
+    - name: Trigger email on failure
+      include_role:
+        name: mail_notification
+        tasks_from: failure_mail
+      vars:
+        ticket_id: "{{ticketNo}}"
+
+
+- name: clearning the inputs of the ticket at the end
+  set_fact:
+    ticketNo: ""  
+    Oracle_TempTable_output: ""
+    database_name: ""
+    target_name: ""
+    
+    

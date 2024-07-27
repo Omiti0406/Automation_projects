@@ -1,0 +1,15 @@
+---
+#This playbook is for update snow incident about assigning ticket to automation user
+- name: update snow incident about assigning ticket to automation user
+  snow_record:
+    username: "{{ snow_user }}"
+    password: "{{ snow_passwd }}"
+    instance: "{{ snow_instance }}"
+    state: present
+    number: "{{ inc_no }}"
+    data:
+      work_notes : "{{ worknotes_msg }}"
+      assigned_to: "{{ snow_user }}"
+      state: "In Progress"
+  delegate_to: localhost
+  become: false

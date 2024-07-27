@@ -1,0 +1,13 @@
+---
+# tasks file for snow_update
+- name: Updating worknotes to the ticket 
+  snow_record:
+    username: "{{ snow_user }}"
+    password: "{{ snow_passwd }}"
+    instance: "{{ snow_instance }}"
+    state: present
+    number: "{{ inc_no }}"
+    data:
+      work_notes : "{{ worknotes_msg }}"
+  delegate_to: localhost
+  become: false

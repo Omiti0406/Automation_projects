@@ -1,0 +1,333 @@
+short_description,Flag
+Add Employee/Contractor Access : 50 South Capital Systems,true
+Add Employee/Contractor Access : Account Analysis Weiland,true
+Add Employee/Contractor Access : Actimize Internal Fraud,true
+Add Employee/Contractor Access : Aggregation,true
+Add Employee/Contractor Access : Alliance Jump Host,true
+Add Employee/Contractor Access : AML-C Wire/Bank Maintenance (MDM) Application,true
+Add Employee/Contractor Access : Automated Investment Sweep,true
+Add Employee/Contractor Access : Avaya Interaction Center,true
+Add Employee/Contractor Access : AWX (Open Source Ansible Tower),true
+Add Employee/Contractor Access : Bamboo Continuous Integration Server,true
+Add Employee/Contractor Access : Cachematrix Liquidity Portal,true
+Add Employee/Contractor Access : Checkpoint Maestro,true
+Add Employee/Contractor Access : CMH - Client Mailing Hub,true
+Add Employee/Contractor Access : CMS - Composite Management System,true
+Add Employee/Contractor Access : Confluent Kafka,true
+Add Employee/Contractor Access : Confluent Kafka for CDC,true
+Add Employee/Contractor Access : Confluent Kafka for ELK,true
+Add Employee/Contractor Access : Data Direct,true
+Add Employee/Contractor Access : Data Ingestion and Transformation,true
+Add Employee/Contractor Access : Data Integration for Accounting,true
+Add Employee/Contractor Access : Datamart for Asset Characteristics,true
+Add Employee/Contractor Access : Datamart Integration Area for Asset Characteristics,true
+Add Employee/Contractor Access : Delphix,true
+Add Employee/Contractor Access : Dynatrace,true
+Add Employee/Contractor Access : eChannel Corporate Client Portal,true
+Add Employee/Contractor Access : eDesktop Application Suite,true
+Add Employee/Contractor Access : Encore Teller,true
+Add Employee/Contractor Access : Enterprise Document Management,true
+Add Employee/Contractor Access : Enterprise OFAC Filter,true
+Add Employee/Contractor Access : FedLine File Transmission,true
+Add Employee/Contractor Access : Financial Reporting System - nForm,true
+Add Employee/Contractor Access : Fund Utility,true
+Add Employee/Contractor Access : Fundmaster,true
+Add Employee/Contractor Access : GCM-Global Cash Movement,true
+Add Employee/Contractor Access : Global Account Management - Corporate(GAM-C),true
+"Add Employee/Contractor Access : Global Assets, Institutions, and Pricing",true
+Add Employee/Contractor Access : Global Cash Hub-Payments,true
+Add Employee/Contractor Access : Global Invest One (GIO),true
+Add Employee/Contractor Access : Global Payment Platform,true
+Add Employee/Contractor Access : Global Securities Lending,true
+Add Employee/Contractor Access : Gremlin,true
+Add Employee/Contractor Access : IBM WebSphere MQ,true
+Add Employee/Contractor Access : Icon Retail,true
+Add Employee/Contractor Access : Ignite,true
+Add Employee/Contractor Access : InBox,true
+Add Employee/Contractor Access : Incorta Advanced Analytics,true
+Add Employee/Contractor Access : Instana,true
+Add Employee/Contractor Access : Integrated Banking System,true
+Add Employee/Contractor Access : Intellect Liquidity Engine,true
+Add Employee/Contractor Access : Intellect Liquidity Management,true
+Add Employee/Contractor Access : Interactive Voice Response,true
+Add Employee/Contractor Access : Internalized Settlement Reporting,true
+Add Employee/Contractor Access : Investment Passport,true
+Add Employee/Contractor Access : Investor Utility,true
+Add Employee/Contractor Access : Investor Workstation,true
+Add Employee/Contractor Access : JavaArch Platform,true
+Add Employee/Contractor Access : KSF - KYC SOA Framework,true
+Add Employee/Contractor Access : Letters of Credit Trade Innovation,true
+Add Employee/Contractor Access : Liquidity Management Engine (LME),true
+Add Employee/Contractor Access : Loan Boarding System,true
+Add Employee/Contractor Access : MD3 Validation Tool,true
+Add Employee/Contractor Access : MFR - Mutual Fund Registration,true
+Add Employee/Contractor Access : Middleware for RLM and DSS,true
+Add Employee/Contractor Access : MTS Money Transfer System 5.0,true
+Add Employee/Contractor Access : Northern Personal Financial Enrollment Application,true
+Add Employee/Contractor Access : NT Credit Exposure Book,true
+Add Employee/Contractor Access : NTGI CAP,true
+Add Employee/Contractor Access : NTGI Coric (NRP),true
+Add Employee/Contractor Access : Online Report Center,true
+Add Employee/Contractor Access : PaaS - Cloud Foundry Platform as a Service,true
+Add Employee/Contractor Access : Partner Workstation,true
+Add Employee/Contractor Access : PEP - OFAC Workbench,true
+Add Employee/Contractor Access : PFS Services Architecture,true
+Add Employee/Contractor Access : PFS-IS Toolset (PFS-IS Product Cat and Data Arch),true
+Add Employee/Contractor Access : Poseidon - Home Directory,true
+Add Employee/Contractor Access : Poseidon - User Group - Unix,true
+Add Employee/Contractor Access : PowerImage - Application Server,true
+Add Employee/Contractor Access : Pricing Operating Platform,true
+Add Employee/Contractor Access : Private Equity Desktop,true
+Add Employee/Contractor Access : PWR - Custom Reporting on Web,true
+Add Employee/Contractor Access : QMR - Quality Measurement Reports,true
+Add Employee/Contractor Access : Regulatory Evaluation and Validation,true
+Add Employee/Contractor Access : Retained Asset Web,true
+Add Employee/Contractor Access : Solace Systems,true
+Add Employee/Contractor Access : TA Matrix Data Mart,true
+Add Employee/Contractor Access : Tax Hub,true
+Add Employee/Contractor Access : Tax Xceptor,true
+Add Employee/Contractor Access : TLM Premium End of Day,true
+Add Employee/Contractor Access : Trade Instruction Portal,true
+Add Employee/Contractor Access : Trafic,true
+Add Employee/Contractor Access : Trust Servicing,true
+Add Employee/Contractor Access : Unix - EMS Sensitive Access - NON-PROD,true
+Add Employee/Contractor Access : Unix - Enterprise Monitoring & Tools Sensitive Access - NON-PROD,true
+Add Employee/Contractor Access : Unix - Enterprise Monitoring & Tools Sensitive Access - PROD,true
+Add Employee/Contractor Access : Unix Applications - End-User Access - NON-PROD,true
+Add Employee/Contractor Access : Wealth Bench - WBN,true
+Add Employee/Contractor Access : Wealth Common Services,true
+Add Employee/Contractor Access : Wealth Data Store,true
+Add Employee/Contractor Access : Wealth Passport,true
+Add Employee/Contractor Access : Web Cash Movement,true
+Add Employee/Contractor Access : Web Mobile Hub Services (WMH),true
+Add Employee/Contractor Access : WM NPF Dataload,true
+Add Employee/Contractor Access : Xact,true
+Add Employee/Contractor Access : Activity Management System,true
+Add Employee/Contractor Access : Alliance Messaging Hub,true
+Add Employee/Contractor Access : Anchor Analytics,true
+Add Employee/Contractor Access : Apache HTTP Server,true
+Add Employee/Contractor Access : Appian,true
+Add Employee/Contractor Access : Application Support - Risk Identification and Prevent,true
+Add Employee/Contractor Access : ASM/CFI-Account and Client Setup and Maintenance,true
+Add Employee/Contractor Access : Babel,true
+Add Employee/Contractor Access : Basel Credit - nCAAP,true
+Add Employee/Contractor Access : BASEL II CRIS ETL.,true
+Add Employee/Contractor Access : Cash Flow Service,true
+Add Employee/Contractor Access : Charles River,true
+Add Employee/Contractor Access : Cognos BI Connection Website,true
+Add Employee/Contractor Access : Collibra Data Quality,true
+Add Employee/Contractor Access : Collibra Enterprise Catalog,true
+Add Employee/Contractor Access : Colline,true
+Add Employee/Contractor Access : Control-M Scheduling,true
+Add Employee/Contractor Access : Corporate Actions Reporting Database,true
+Add Employee/Contractor Access : Credit Risk Default Database,true
+Add Employee/Contractor Access : Depository Guarantee Scheme Directive application,true
+Add Employee/Contractor Access : Docker Containers as a Service,true
+Add Employee/Contractor Access : DOME (Depositary Operations Monitoring Engine),true
+Add Employee/Contractor Access : Eagle Hosted Interface,true
+Add Employee/Contractor Access : Elastic,true
+Add Employee/Contractor Access : Enterprise Banking Platform,true
+Add Employee/Contractor Access : Enterprise Product Solution,true
+Add Employee/Contractor Access : FA- Framework (FNV),true
+Add Employee/Contractor Access : FA- JAVA Platform (FJP),true
+Add Employee/Contractor Access : Finance Management - Funds Transfer Pricing Application - OFSAA - FMZ,true
+Add Employee/Contractor Access : Finance Warehouse,true
+Add Employee/Contractor Access : Fund Accounting DataWarehouse,true
+Add Employee/Contractor Access : Global Cash Hub-Balances,true
+Add Employee/Contractor Access : Global Dataload,true
+Add Employee/Contractor Access : Global Fee Billing,true
+Add Employee/Contractor Access : Global Fee Billing Analytics Dashboard,true
+Add Employee/Contractor Access : Global Regulatory System,true
+Add Employee/Contractor Access : Global Securities Processing,true
+Add Employee/Contractor Access : Global Treasury Management,true
+Add Employee/Contractor Access : HR Unix Database Access - Prog Support - NON-PROD,true
+Add Employee/Contractor Access : InfoSphere DataStage,true
+Add Employee/Contractor Access : Intraday Liquidity Analytics,true
+Add Employee/Contractor Access : IR - Integrated Reporting,true
+Add Employee/Contractor Access : LDI Middleware,true
+Add Employee/Contractor Access : Liquidity Capacity Management and Reporting,true
+Add Employee/Contractor Access : Message Gateway,true
+Add Employee/Contractor Access : Mobile Device Detection,true
+Add Employee/Contractor Access : Murex Back Office,true
+Add Employee/Contractor Access : Northern Contract Data Store,true
+Add Employee/Contractor Access : Northern Warehouse External,true
+Add Employee/Contractor Access : NTR-X,true
+Add Employee/Contractor Access : Online Report Template Management,true
+Add Employee/Contractor Access : Oracle Enterprise Data Quality,true
+Add Employee/Contractor Access : Oracle Enterprise Manager,true
+Add Employee/Contractor Access : OSJArch7,true
+Add Employee/Contractor Access : PaaS - Cloud Foundry Platform as a Service,true
+Add Employee/Contractor Access : PACE - Performance Analytics Calculation Engine,true
+Add Employee/Contractor Access : PCL - Passport Consolidated Login,true
+Add Employee/Contractor Access : Private Cloud - Dell,true
+Add Employee/Contractor Access : Private Passport (ECP),true
+Add Employee/Contractor Access : Qualys,true
+Add Employee/Contractor Access : Real Time Trade 2.0,true
+Add Employee/Contractor Access : Remote Payment Initiation & Inquiry,true
+Add Employee/Contractor Access : Report Scheduler,true
+Add Employee/Contractor Access : Risk Compliance Solution,true
+Add Employee/Contractor Access : Risk Data Services,true
+Add Employee/Contractor Access : Sapience Vue Analytics Cloud,true
+Add Employee/Contractor Access : Shared Services,true
+Add Employee/Contractor Access : Sonar,true
+Add Employee/Contractor Access : Swift Alliance Access (London),true
+Add Employee/Contractor Access : SwiftNet Fileact Services,true
+Add Employee/Contractor Access : Symphony,true
+Add Employee/Contractor Access : Tax-Advantaged Equity Workbench,true
+Add Employee/Contractor Access : Transparency Engine (TED),true
+Add Employee/Contractor Access : TRO - Total Risk Online - and Batch,true
+Add Employee/Contractor Access : Unitization and Planned Valuation Tool,true
+Add Employee/Contractor Access : Unix - DevOps Sensitive Access - NON-PROD,true
+Add Employee/Contractor Access : Wealth Management Charles River,true
+Add Employee/Contractor Access : Web Trade Services,true
+Add Employee/Contractor Access : XDD-XML Document Distribution Scheduler,true
+Add Employee/Contractor Access : AIM Web - Account Inquiry and Maintenance,true
+Add Employee/Contractor Access : Bancs Archiving,true
+Add Employee/Contractor Access : Business Analytics Services,true
+Add Employee/Contractor Access : CADS (Client & Account Data Strategy),true
+Add Employee/Contractor Access : CAG - Client and Account Governance,true
+Add Employee/Contractor Access : Colline System Extension,true
+Add Employee/Contractor Access : Compliance Analyst,true
+Add Employee/Contractor Access : Corporate Action Delivery and Response,true
+"Add Employee/Contractor Access : DIA ,DMC and DIT in UAT for Unix",true
+Add Employee/Contractor Access : Enterprise Data Layer,true
+Add Employee/Contractor Access : EPV- Enterprise Password Vault,true
+Add Employee/Contractor Access : FA Centralized Framework,true
+Add Employee/Contractor Access : File Cabinet,true
+Add Employee/Contractor Access : Financial Global Consolidations,true
+Add Employee/Contractor Access : Financial Planning and Forecasting,true
+Add Employee/Contractor Access : FX Management Information Portal,true
+Add Employee/Contractor Access : Global Entitlements Hub,true
+Add Employee/Contractor Access : Global Fund Admin Portal,true
+Add Employee/Contractor Access : Global Platform for Alternative Fund Services,true
+Add Employee/Contractor Access : Global Platform for London Alternative Assets,true
+Add Employee/Contractor Access : Identity and Access Certification,true
+Add Employee/Contractor Access : Identity Manager - IDM,true
+Add Employee/Contractor Access : Illumio,true
+Add Employee/Contractor Access : Index Services,true
+Add Employee/Contractor Access : Infrastructure Enterprise Services(IES),true
+Add Employee/Contractor Access : Investment Data Publishing,true
+Add Employee/Contractor Access : Investments Asset Data Store,true
+Add Employee/Contractor Access : Letter of Credit Global Zone,true
+Add Employee/Contractor Access : Letter of Credit - Miami Zone,true
+Add Employee/Contractor Access : Master Data Services,true
+Add Employee/Contractor Access : Microsoft Azure DevOps Server,true
+Add Employee/Contractor Access : Multifonds - European Transfer Agency,true
+Add Employee/Contractor Access : Northern Corporate Warehouse,true
+Add Employee/Contractor Access : Operations Initiated Transactions (OIT New),true
+Add Employee/Contractor Access : PAE - Performance Attribution Engine,true
+Add Employee/Contractor Access : PARE - PACE Reporting Application Engine,true
+Add Employee/Contractor Access : PMM Wealth Management,true
+Add Employee/Contractor Access : PMW - Portfolio Manager Workbench (IAM),true
+Add Employee/Contractor Access : Rapid Enrollment Application,true
+Add Employee/Contractor Access : Realtime Data Replication,true
+Add Employee/Contractor Access : RepoClear Automation,true
+Add Employee/Contractor Access : Revport - FIO,true
+Add Employee/Contractor Access : Risk Analytics Reporting,true
+Add Employee/Contractor Access : Securities Transfer System,true
+Add Employee/Contractor Access : Surveil-X,true
+Add Employee/Contractor Access : TCX-Transfer Agency Cash Transmission,true
+Add Employee/Contractor Access : TLM Premium Funds,true
+Add Employee/Contractor Access : Trade Notification,true
+Add Employee/Contractor Access : Transaction Cost Chargeback,true
+Add Employee/Contractor Access : Unix - Securities Lending Admin (SLDADM) - PROD,true
+Add Employee/Contractor Access : Unix - ZDSADMIN - NON-PROD,true
+Add Employee/Contractor Access : Unix - ZDSADMIN - PROD,true
+Add Employee/Contractor Access : Unix LDAP,true
+Add Employee/Contractor Access : UPP,true
+Add Employee/Contractor Access : WASArch,true
+Add Employee/Contractor Access : Alliance Web Platform,true
+Add Employee/Contractor Access : Alternative Lifecycle Engine,true
+Add Employee/Contractor Access : Archer IMS Interface,true
+Add Employee/Contractor Access : Azure Monitor Agent(AMA),true
+Add Employee/Contractor Access : Balance Server,true
+Add Employee/Contractor Access : CA Release Automation (CARA),true
+Add Employee/Contractor Access : CAMA aka IM Actions - Corporate Action & Income Scrubber,true
+Add Employee/Contractor Access : CMRM - Capital Markets Risk Management,true
+Add Employee/Contractor Access : Composite Data Virtualization,true
+Add Employee/Contractor Access : Derivatives Active Pivot,true
+"Add Employee/Contractor Access : DIA ,DMC and DIT in UAT  for Unix",true
+Add Employee/Contractor Access : Direct Provisioning Console,true
+Add Employee/Contractor Access : Enterprise Data Layer - Unix Access - Non Prod,true
+Add Employee/Contractor Access : Enterprise Data Warehouse - Unix Access - Non Prod,true
+Add Employee/Contractor Access : Entitlements - GCA Voluntary Calculation and Posting,true
+Add Employee/Contractor Access : FEP-Fee Plus,true
+"Add Employee/Contractor Access : FGL _ERP  ePRO, AP,  EPR",true
+Add Employee/Contractor Access : GitHub Enterprise,true
+Add Employee/Contractor Access : Global Regulatory Reporting,true
+Add Employee/Contractor Access : GMI - Exchange Traded Derivatives,true
+Add Employee/Contractor Access : Goals Powered Solutions,true
+Add Employee/Contractor Access : IBM Content Collector,true
+Add Employee/Contractor Access : ICM -Investigation Case Management (UAF),true
+Add Employee/Contractor Access : Java Architecture Security,true
+Add Employee/Contractor Access : Letter of Credit  Global Zone,true
+Add Employee/Contractor Access : MarkLogic,true
+Add Employee/Contractor Access : Mirantis Kubernetes for .NET,true
+Add Employee/Contractor Access : PAID - Physical Assets Integrated Database,true
+Add Employee/Contractor Access : Partner Platform Analytics,true
+Add Employee/Contractor Access : ServiceNow,true
+Add Employee/Contractor Access : Tickler (web app),true
+Add Employee/Contractor Access : TLM Control TLA for PLD application,true
+Add Employee/Contractor Access : Transaction Tracking Dashboard,true
+Add Employee/Contractor Access : Unstructured Data Discovery,true
+Employee/Contractor: Suspend Access,true
+Add Employee/Contractor Access : Verint Impact 360 Recording,true
+Add Employee/Contractor Access : CADS (Client & Account Data Strategy),true
+Add Employee/Contractor Access : CADS (Client & Account Data Strategy),true
+Add Employee/Contractor Access : CAG - Client and Account Governance,true
+Add Employee/Contractor Access : Partner Workstation,true
+Add Employee/Contractor Access : CADS (Client & Account Data Strategy),true
+Add Employee/Contractor Access : CADS (Client & Account Data Strategy),true
+Add Employee/Contractor Access : CADS (Client & Account Data Strategy),true
+Add Employee/Contractor Access : CADS (Client & Account Data Strategy),true
+Add Employee/Contractor Access : CADS (Client & Account Data Strategy),true
+Add Employee/Contractor Access : CADS (Client & Account Data Strategy),true
+Add Employee/Contractor Access : Credit Risk Comprehensive Capital Analysis and Review (CCAR),true
+Add Employee/Contractor Access : MTS Money Transfer System 5.0,true
+Add Employee/Contractor Access : PFS-IS Toolset (PFS IS Product Cat and Data Arch),true
+Add Employee/Contractor Access : Enterprise Banking Platform,true
+Add Employee/Contractor Access : Enterprise Banking Platform,true
+Add Employee/Contractor Access : Dynatrace,true
+Add Employee/Contractor Access : Dynatrace,true
+Add Employee/Contractor Access : Unix - AAPADM - Appian Administrators - NON-PROD,true
+Add Employee/Contractor Access : Tax Hub,true
+Add Employee/Contractor Access : Tax Hub,true
+Add Employee/Contractor Access : UPP,true
+Add Employee/Contractor Access : UPP,true
+Add Employee/Contractor Access : Poseidon - User Group - Unix,true
+Add Employee/Contractor Access : Poseidon - Home Directory,true
+Add Employee/Contractor Access : BASEL II CRIS Oracle Warehouse.,true
+Add Employee/Contractor Access : BASEL II CRIS ETL.,true
+Add Employee/Contractor Access : Credit Risk Comprehensive Capital Analysis and Review (CCAR),true
+Add Employee/Contractor Access : Moody's CreditLens,true
+Add Employee/Contractor Access : NT Credit Exposure Book,true
+Add Employee/Contractor Access : Liquidity Capacity Management and Reporting,true
+Add Employee/Contractor Access : Liquidity Capacity Management and Reporting,true
+Add Employee/Contractor Access : Liquidity Capacity Management and Reporting,true
+Add Employee/Contractor Access : Liquidity Capacity Management and Reporting,true
+Add Employee/Contractor Access : Liquidity Capacity Management and Reporting,true
+Add Employee/Contractor Access : Liquidity Capacity Management and Reporting,true
+Add Employee/Contractor Access : Cachematrix Liquidity Portal,true
+Add Employee/Contractor Access : Liquidity Capacity Management and Reporting,true
+Add Employee/Contractor Access : Cachematrix Liquidity Portal,true
+Add Employee/Contractor Access : Liquidity Capacity Management and Reporting,true
+Add Employee/Contractor Access : Liquidity Capacity Management and Reporting,true
+Add Employee/Contractor Access : Liquidity Capacity Management and Reporting,true
+Add Employee/Contractor Access : Liquidity Capacity Management and Reporting,true
+Add Employee/Contractor Access : Cachematrix Liquidity Portal,true
+Add Employee/Contractor Access : Cachematrix Liquidity Portal,true
+Add Employee/Contractor Access : Cachematrix Liquidity Portal,true
+Add Employee/Contractor Access : Cachematrix Liquidity Portal,true
+Add Employee/Contractor Access : Liquidity Capacity Management and Reporting,true
+Add Employee/Contractor Access : Cachematrix Liquidity Portal,true
+Add Employee/Contractor Access : Cachematrix Liquidity Portal,true
+Add Employee/Contractor Access : Trust Servicing,true
+Add Employee/Contractor Access : ASM/CFI-Account and Client Setup and Maintenance,true
+Add Employee/Contractor Access : Global Account Management - Corporate(GAM-C),true
+Add Employee/Contractor Access : Global Cash Hub-Balances,true
+Add Employee/Contractor Access : Treasury Passport,true
+Add Employee/Contractor Access : TRC Metrics And Automation,true
+Add Employee/Contractor Access : TRC Metrics And Automation,true
+Add Employee/Contractor Access : TRC Metrics And Automation,true
+Add Employee/Contractor Access : TRC Metrics And Automation,true
+Add Employee/Contractor Access : TRC Metrics And Automation,true

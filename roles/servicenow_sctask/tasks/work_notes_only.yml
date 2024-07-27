@@ -1,0 +1,12 @@
+- name: Add worknotes to the ticket 
+  servicenow.servicenow.snow_record:
+    username: "{{ snow_user }}"
+    password: "{{ snow_passwd }}"
+    instance: "{{ snow_instance }}"
+    state: present
+    table: sc_task
+    number: "{{ sr_number }}"
+    data:
+      work_notes : "{{ worknotes_msg }}"
+  delegate_to: localhost
+  become: false

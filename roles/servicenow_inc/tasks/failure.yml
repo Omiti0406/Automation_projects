@@ -1,0 +1,18 @@
+---
+# tasks file for snow_update
+- name: Updating SNOW regarding the failure 
+  snow_record:
+    username: "{{ snow_user }}"
+    password: "{{ snow_passwd }}"
+    instance: "{{ snow_instance }}"
+    state: present
+    number: "{{ inc_no }}"
+    data:
+      work_notes : "Ansible could not resolve the issue on {{ target_host }} \n Ticket Number {{ snow_incident_id }} \n\n Error Message \n {{ error_msg }}\nAssigning to {{ L2_group }}"
+      state: "New"
+      close_notes: "{{ failure_closing_note }}"
+      assignment_group: "{{ L2_group }}"
+  vars:
+    error_msg: "{{ ansible_failed_result|default('Issue not resolved by Ansible') }}"
+  delegate_to: localhost
+  become: false

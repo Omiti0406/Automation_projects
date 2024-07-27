@@ -1,0 +1,31 @@
+
+---
+######################################################################
+#               !!! fetch_sr_details.yml !!!                         #
+#                                                                    #
+# Function:                                                          #
+#   - Search for SCTASKs assigned to group,return specific fields    #
+#                                                                    #
+#                                                                    #
+######################################################################
+
+#
+# Search for tickets assigned to group, return specific fields
+
+- name: Search for SR assigned to group Verint Support, return specific fields
+  servicenow.servicenow.snow_record_find:
+    username: "{{ snow_user }}"
+    password: "{{ snow_passwd }}"
+    instance: "{{ snow_instance }}"
+    display_value: true
+    table: sc_task
+    query: "{{snow_query}}"
+    return_fields:
+      - number
+      - request_item
+      - request
+      - u_application_tla  
+  register: tickets
+  
+- set_fact:
+    tickets: "{{tickets.record}}"

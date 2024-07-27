@@ -1,0 +1,12 @@
+# tasks file for snow_update
+- name: Updating the assign_to field on the ticket 
+  snow_record:
+    username: "{{ snow_user }}"
+    password: "{{ snow_passwd }}"
+    instance: "{{ snow_instance }}"
+    state: present
+    number: "{{ inc_no }}"
+    data:
+      assigned_to: "{{user_assigned_to}}"
+  delegate_to: localhost
+

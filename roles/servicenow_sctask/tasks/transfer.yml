@@ -1,0 +1,20 @@
+---
+# tasks file for snow_update
+- include_vars: snow_credentials.yml
+  no_log: false
+
+- name: Updating SNOW regarding the failure 
+  snow_record:
+    username: "{{ snow_user }}"
+    password: "{{ snow_passwd }}"
+    instance: "{{ snow_instance }}"
+    state: present
+    table: sc_task
+    number: "{{ sr_number }}"
+    data:
+      work_notes : "{{ transfer_msg }}"
+      state: "2"
+      #close_notes: "{{ failure_closing_note }}"
+      assignment_group: "{{ transfer_group }}"
+  delegate_to: localhost
+  become: false

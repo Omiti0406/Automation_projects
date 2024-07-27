@@ -1,0 +1,30 @@
+- name: Send instructions mail to the partner on successful completion of the request.
+  mail:
+    host: "{{mail_server}}"
+    port: "{{mail_port}}"
+    subject: "{{sctaskNo}} Add Employee/Contractor Access"
+    from: "{{from_email}}"
+    to: "{{partner_email}}"
+    cc: "{{cc_email}}"
+    body: |
+      Your account has been created or updated.
+
+      Please follow below steps for enabled or newly created ID.                 
+
+      Password : Please reset your LAN ID password once you see Unix Store check Box Psynch.
+
+      Please follow the below steps to reset your LAN ID password :
+
+      1. Go to the  link - https://psynch.ntrs.com/psydb (Password management) `n 
+      2. Enter LAN ID -> Enter LAN Password -> Change Password `n
+      3. Select Unix Store check box while changing the password. `n
+      4. Login to any of the server after changing the password via SSH. `n
+
+      Please try to login to ay of Unix server within 24 hrs, otherwise your account will get disabled.
+      If you are facing any issue please let us know.
+
+      Note: 
+      1.         Psynch only updates each evening, so the Unix store won?t show up until tomorrow.  After that time, you?ll be able to reset your password, and therefore log into Unix.
+      2.         If the ID is not used regularly please make sure to login to any server once a month to keep your ID enabled.
+      SSH is the only method that will update your last login.  FTP, SFTP, WinSCP, other applications, none of these will work
+

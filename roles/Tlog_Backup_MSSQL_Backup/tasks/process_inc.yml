@@ -1,0 +1,175 @@
+---
+##########################################################################
+# Description: This playbook will be triggered to process the individual # 
+#              tickets with the complete workflow.                       #
+##########################################################################
+
+- name: Extracting required inputs from the ticket.
+  block:
+    - name: Pull the incident number
+      set_fact:
+        ticketNo: "{{ticket_detail.number}}"
+    - include_role:
+        name: servicenow_inc
+        tasks_from: progress
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Automation has started working on the ticket. Automation process id- {{awx_job_id}}"
+    
+   
+    - name: pull the required inputs from the ticket
+      set_fact:
+        sql_server: "{{ ticket_detail.short_description | regex_findall('XSQL.*?L1 ') | regex_replace(\"\\['XSQL\", '') | regex_replace(\"L1 '\\]\", '') }}"   
+    
+    - debug: 
+        msg: "SQL_server name is {{sql_server}}"   
+
+    # To check verify the fetched inputs and update the ticket incase of insufficient data.
+    - name: update the ticket if the inputs are not being pulled properly
+      include_role:
+        name: servicenow_inc
+        tasks_from: failure_worknotes
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Error occured: Insufficient input data, automation is unable to process the incident. \n vserver: {{sql_server}} \n }}"
+      when: (sql_server is not defined) or (sql_server == "")
+  rescue:
+    - include_role:
+        name: servicenow_inc
+        tasks_from: failure_worknotes
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Error occured: Automation is unable to process the ticket, seems like required input parameters (sql_server) is eighter blank or not in the proper format."
+
+
+- name: print the inc number
+  debug:
+    msg: "Processing -> {{ticketNo}}"
+
+
+- name: Checking server connectivity 
+  block:
+  - wait_for:
+      host: "{{sql_server}}.ENT.AD.NTRS.COM"
+      port: 5985
+      timeout: 10
+    register: connCheck 
+
+  rescue:
+    - include_role:
+        name: servicenow_inc
+        tasks_from: failure_worknotes
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Automation tried to reach the server but {{sql_server}} is not reachable. Please check it manually"
+    
+- name: start processing the ticket and call the playbook to execute
+  when: ((sql_server is defined) or (sql_server != "")) and (connCheck is succeeded)
+  block:      
+    - import_tasks: tlog_backup_mssql.yml
+      delegate_to: "{{ sql_server }}.ENT.AD.NTRS.COM"
+        
+    - name: updating the backup status - Iteration 1
+      include_role:
+        name: servicenow_inc
+        tasks_from: work_notes_only
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Backup Content\n\n: {{LogContent_output}}\n\n Backup is {{backup_status_check_output}}\n\nWill wait for 30mins and recheck"
+      when: (LogContent_output is defined and LogContent_output !="") and (backup_status_check_output is defined and backup_status_check_output !="")
+    
+    - name: updating the rescue block
+      include_role:
+        name: servicenow_inc
+        tasks_from: work_notes_only
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Error in executing: {{response_msg_temp}}\n "
+      when: (response_msg_temp is defined and response_msg_temp !="")
+
+    - name: wait for 30 mins 
+      command: sleep 1800
+      async: 1800
+      poll: 600
+      delegate_to: localhost
+      when: ("'Success' in backup_status_check_output") or ("'Fail' in backup_status_check_output")
+
+    - name: Iteration 2 - Execute PS script 
+      import_tasks: tlog_backup_mssql.yml
+      delegate_to: "{{ sql_server }}.ENT.AD.NTRS.COM"
+
+    - name: iteration 2 - update and close the ticket if backup successful
+      include_role:
+        name: servicenow_inc
+        tasks_from: success
+      vars:
+        inc_no: "{{ticketNo}}"
+        resolve_message: "Backup output is: {{LogContent_output}}\n\n Backup is {{backup_status_check_output}} in second iteration, hence closing the ticket"
+        success_closing_note: "Backup is successful in second iteration, so closing the ticket. "
+      when: (LogContent_output is defined and LogContent_output !="") and (backup_status_check_output is defined and backup_status_check_output !="" and 'Success' in backup_status_check_output )
+
+    - name: iteration 2 - update and wait for another 30mins  if backup fail
+      include_role:
+        name: servicenow_inc
+        tasks_from: work_notes_only
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Backup output is: {{LogContent_output}}\n\n Backup is {{backup_status_check_output}} in second iteration,\n\n Will wait for another 30mins and recheck "
+      when: (LogContent_output is defined and LogContent_output !="") and (backup_status_check_output is defined and backup_status_check_output !="" and 'Fail' in backup_status_check_output )
+
+    - name: wait for 30 mins
+      command: sleep 1800
+      async: 1800
+      poll: 600
+      delegate_to: localhost
+      when: (backup_status_check_output is defined and backup_status_check_output != "" and 'Fail' in backup_status_check_output)
+
+    - name: Iteration 3 - Execute PS script as earlier backup got failed
+      import_tasks: tlog_backup_mssql.yml
+      when: (backup_status_check_output is defined and backup_status_check_output !="" and 'Fail' in backup_status_check_output ) 
+      delegate_to: "{{ sql_server }}.ENT.AD.NTRS.COM"
+
+    - name: iteration 3 - update and close the ticket if backup successful
+      include_role:
+        name: servicenow_inc
+        tasks_from: success
+      vars:
+        inc_no: "{{ticketNo}}"
+        resolve_message: "Backup output is: {{LogContent_output}}\n\n Backup is {{backup_status_check_output}} in second iteration, hence closing the ticket"
+        success_closing_note: "Backup is successful in second iteration, so closing the ticket. "
+      when: (LogContent_output is defined and LogContent_output !="") and (backup_status_check_output is defined and backup_status_check_output !="" and 'Success' in backup_status_check_output )
+
+    - name: iteration 3 - update and assign ticket to manual queue if backup failed
+      include_role:
+        name: servicenow_inc
+        tasks_from: failure_worknotes
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Backup output is: {{LogContent_output}}\n\n Backup is {{backup_status_check_output}} in third iteration, manual intervention is required.\n\n"
+      when: (LogContent_output is defined and LogContent_output !="") and (backup_status_check_output is defined and backup_status_check_output !="" and 'Fail' in backup_status_check_output)
+      
+    - name: Adding ticket as successfully executed list
+      set_fact:
+        success_tickets: "{{success_tickets + [ticketNo]}}"  
+
+  rescue:
+    - name: To capture the errors in the playbook.
+      include_role:
+        name: servicenow_inc
+        tasks_from: failure_worknotes
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Error occured: Automation is unable to process the ticket, hence routing it for manual intervention."
+    - name: Trigger email on failure
+      include_role:
+        name: mail_notification
+        tasks_from: failure_mail
+      vars:
+        ticket_id: "{{ticketNo}}"
+
+- name: clearing the inputs of the ticket at the end
+  set_fact:
+    ticketNo: ""
+    sql_server: ""
+    
+   
