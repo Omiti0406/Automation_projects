@@ -1,0 +1,70 @@
+
+- name: Execute start script
+  block:
+  - name: execute start script
+    win_shell: |
+                  Function Service_Start
+                    {
+                    [String] $ServiceName="{{ string_result_output }}"
+                    $status = Get-Service -Name $ServiceName -ErrorAction Stop | select -ExpandProperty Status
+                    try{
+                    if($status -ne "Running")
+
+                    {
+                    echo "Current status of the serviceName"
+                    Get-Service -DisplayName $ServiceName| ft  -AutoSize
+                    Start-Sleep 30
+
+                    echo "`nStarted the serviceName and found the Running status in the below"
+                    Start-Sleep 30
+                    Start-Service -DisplayName $ServiceName -ErrorAction Stop 
+                                        
+                    $status_after = Get-Service $ServiceName -ErrorAction Stop | Select -Property status,Name|ft -AutoSize
+                    $status_after
+
+                    #$status_after.Status
+                    }
+                    elseif($status -eq "Running") { 
+                    echo "ServiceName is already running state and find status below"
+                    $status_after = Get-Service $ServiceName -ErrorAction Stop | Select -Property status,Name|ft -AutoSize
+                    $status_after
+                    }
+                    else{echo "Orchestrator unabled to start the ServiceName"}
+                    }
+                    catch{echo "Found the error while starting the serviceName"}
+                    }
+                    
+                    Try{
+                    $username = '{{ ansible_user }}'
+                    $password = '{{ ansible_password }}'
+
+                    $fqdn="{{ server }}"
+
+                    $Spassword = ConvertTo-SecureString $password -AsPlainText -Force
+                    $cred = New-Object System.Management.Automation.PSCredential ($username,$Spassword)
+
+                    $rv = Invoke-Command -computername $fqdn -ScriptBlock ${Function:Service_Start} -Credential $cred -ErrorAction stop
+                    $rv
+                    }
+                    catch{
+                    $_.Exception.Message
+                    }
+    delegate_to: "wpcmxsp05.ENT.AD.NTRS.COM"
+    register: start_service
+      
+  - debug: 
+        msg: "{{start_service.stdout_lines}}"
+    when: start_service.stdout_lines is defined
+  
+  - debug: 
+        msg: "Automation failed - {{ start_service.stderr }}"
+    when: start_service.stderr != ""
+  
+  - name: Setting the value of type of process
+    set_fact:
+      start_service_output: "{{ start_service.stdout }}"
+    
+  rescue:
+  - name: set the error output 
+    set_fact:
+      response_msg_temp: "Automation Failed to find server path. Please check manually" 

@@ -1,0 +1,75 @@
+- name: Inside find SQL Server playbook
+  debug:
+    msg: "Inside find SQL Server playbook -> {{ server }}"
+
+- name: ping the target server .
+  block:
+    - name: Executing ping command
+      win_shell: ping "{{ server }}"
+      register: ping_result
+    - name: Setting ping ouput success response  
+      set_fact:
+        ping_output_response_msg: " Ping Output {{ ping_result.stdout }}"
+      when: ping_result is defined
+  rescue:
+    - name: Setting ping ouput fail response
+      set_fact:
+        ping_output_response_msg: "Automation was unable to run the ping command"
+ 
+- name: Block to fecth the used disk size of C drive in percentage
+  win_shell: |
+             $space= Get-PSDrive C | Select-Object Free,Used
+             $total = $space.Free + $space.Used
+             $free_space_in_percentage = ($space.Free/$total)*100
+             $used_space_in_percentage = ($space.Used/$total)*100
+             [Math]::Round($used_space_in_percentage,2)
+  register: drive_space
+- debug:
+    msg: "{{ drive_space }}"
+
+
+- name: Finding SQL Server
+  block:
+  - name: Finding SQL Server
+    win_shell: |    
+                $a=$null
+                $comp= "{{ server }}"
+                $opt=$(try
+                {
+                $a=Get-WmiObject -ClassName win32_product -Filter "Name like 'Microsoft SQL Server%'" -ComputerName $comp| Select PSComputerName,Name,Version -last 1 | Sort-Object -Property * -ErrorAction stop;
+                if($a -ne $null){
+
+                            $pc= New-Object -TypeName psobject -Property @{
+                            PSComputerName = $a.PSComputerName
+                            Name = $a.Name
+                            Version = $a.Version
+                        }   | Select-Object Name
+
+                       Write-Output ($pc | format-list |Out-String).Trim()
+                       }
+                       else{
+                       echo 'not found installed SQL product on the triggered incident machine'
+                       }
+                  }
+                  catch{
+                  echo "Event ID was not found on the machine, incase check manually on the machine"
+                  });
+  
+                  $opt                     
+    register: FindSQLServer_result
+  - debug:
+      msg: "{{ FindSQLServer_result }}"
+    when: FindSQLServer_result is defined
+  - set_fact: 
+      FindSQLServer_output: "{{ FindSQLServer_result.stdout }}"
+    when: FindSQLServer_result is defined
+
+- name: Setting FindSQLServer flag value
+  set_fact:
+    SQL_value_flag: true
+  when: "'Microsoft' in FindSQLServer_output"
+  
+- name: Setting FindSQLServer flag value
+  set_fact:
+    SQL_value_flag: false
+  when: "'not found' in FindSQLServer_output"    

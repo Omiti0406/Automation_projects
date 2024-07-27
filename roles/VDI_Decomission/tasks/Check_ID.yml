@@ -1,0 +1,109 @@
+
+- name: Execute ps script
+  block:
+  - name: Checking if ID is enable or disable 
+    win_shell: 
+        |                   
+        #Inputs
+        $RequesterName = "{{LANID}}"
+
+        #Constants
+        $flag = $false
+        $Output = $null
+        $UserID = $null
+        $UserType = $null
+        $FinalOutput = [PSCustomObject]@()
+        $Error1 =$null
+        #Logfile Path
+        $Logfile = "\\sdcholp003\HO_21.4.0_Solutions\VDI_UseCase\VDI_Decomission\Log\ADlog.txt"
+
+        #Logfile Function
+        Function Write-Log
+        {
+        Param ([string]$logstring)
+        Add-content $Logfile -value $logstring
+        }
+
+        try
+        {
+            #$Status = Get-ADUser $RequesterName | Select-Object -ExpandProperty Enabled 
+            Write-Log "$(Get-Date) - Script execution started"
+            Write-Log "$(Get-Date) - Searching for user in AD"
+
+            $User =Get-ADUser -Filter {samAccountName -eq $RequesterName} -Properties Title,Enabled,SamAccountName -ErrorAction SilentlyContinue
+            
+            if($User -ne $null)
+            {
+                
+                if($User.Enabled -match "True")
+                {
+                    $Output = "AD user $($RequesterName) is not disabled, exiting the flow."
+                    Write-Log "$(Get-Date) - AD user $($RequesterName) is not disabled, exiting the flow."
+                    $flag = $false
+                }
+                elseif($User.Enabled -match "False")
+                {
+                    $Output = "AD user $($RequesterName) is disabled, proceeding with further processing."
+                    Write-Log "$(Get-Date) - AD user $($RequesterName) is disabled, proceeding with further processing."
+                    $flag = $true
+                    if($User.Title -ne $null)
+                    {
+                        $flag = $true
+                        $UserType = $User.Title
+                        $Output +="`nAD user type is $($UserType)"
+                    }
+                    else
+                    {
+                        $flag = $false
+                    }
+                    #Get the user ID
+                    if($User.SamAccountName -ne $null)   
+                    {
+                        $flag = $true
+                        $UserID = $User.SamAccountName
+                        #$Output +="`nAD user ID is $($UserID)"
+                    }
+                    else
+                    {
+                        $flag = $false
+                    }
+                }
+            }
+            else
+            {
+                Write-Log "$(Get-Date) - User not found in AD"
+                $Output= "User not found in AD"
+                #$flag = $true
+            }
+            
+        }
+        catch
+        {
+            $Error1 = $_.Exception.Message
+        }
+        finally
+        {
+            #Write-Output $flag
+            #Write-Output $UserID
+            #Write-Output $UserType
+            #Write-Output $Output
+            #Write-Output $Error1
+
+            $FinalOutput = $FinalOutput + (New-Object -TypeName psobject -Property @{Flag=$flag})
+            $FinalOutput = $FinalOutput + (New-Object -TypeName psobject -Property @{UserID=$RequesterName})
+            $FinalOutput = $FinalOutput + (New-Object -TypeName psobject -Property @{UserType=$UserType})
+            $FinalOutput = $FinalOutput + (New-Object -TypeName psobject -Property @{Output=$Output})
+            $FinalOutput = $FinalOutput + (New-Object -TypeName psobject -Property @{Error=$Error1})
+            
+            $Sendout = $FinalOutput | ConvertTo-Json
+
+            #Printing the final output of 1st script
+            Write-Output $Sendout
+        }
+    delegate_to: "{{ Windows_host }}"    
+    register: Sendout
+- name: User output
+  set_fact:
+    User_output: "{{Sendout.stdout}}"
+
+ 

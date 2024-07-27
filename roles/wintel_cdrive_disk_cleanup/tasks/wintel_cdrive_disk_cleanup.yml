@@ -1,0 +1,279 @@
+- name: Inside wintel_cdrive_disk_cleanup playbook
+  debug:
+    msg: "Inside wintel_cdrive_disk_cleanup playbook -> {{ server }}"
+
+- name: ping the target server .
+  block:
+    - name: Executing ping command
+      win_shell: ping "{{ server }}"
+      register: ping_result
+    - name: Setting ping ouput success response  
+      set_fact:
+        ping_output_response_msg: " Ping Output {{ ping_result.stdout }}"
+      when: ping_result is defined
+  rescue:
+    - name: Setting ping ouput fail response
+      set_fact:
+        ping_output_response_msg: "Automation was unable to run the ping command"
+ 
+- name: Block to fecth the used disk size of C drive in percentage
+  win_shell: |
+             $space= Get-PSDrive C | Select-Object Free,Used
+             $total = $space.Free + $space.Used
+             $free_space_in_percentage = ($space.Free/$total)*100
+             $used_space_in_percentage = ($space.Used/$total)*100
+             [Math]::Round($used_space_in_percentage,2)
+  register: before_drive_space
+- debug:
+    msg: "{{ before_drive_space }}"
+- name: Setting drive size value before cleanup 
+  set_fact:
+    before_drive_space_output: " Current status of C drive space is in % : {{ before_drive_space.stdout_lines }}"
+  when: before_drive_space is defined
+
+- name: Fetching CDrive_cleanup_result
+  block:
+  - name: Deleting files from C Drive
+    win_shell: |    
+                $DaysToDelete = 10000
+                    #$objShell = New-Object -ComObject Shell.Application
+                    #$objFolder = $objShell.Namespace(0xA)
+
+                    #$ErrorLog = $reportPath +"DiskError_" +$Server +$(get-date -format dd-MM-yyyy-HH-mm-ss)+ "_ErrorLog.txt";
+                   $ErrInvoke = $null;
+                   $Threshold=80;
+                   $device_id="C:";
+                   $IISLogsDaysToDelete = 30;
+                   $content =@();
+                   #To Get Page File Details of drive
+                   $Pagefile=Get-WmiObject Win32_PageFileusage | Select-Object Name,AllocatedBaseSize,PeakUsage |Format-Table -AutoSize | Out-String
+
+                    #To find ISOVHD files
+                    $ISOVHDFiles = Get-ChildItem -Path c:\* -Recurse -Force -ErrorAction SilentlyContinue | where {$_.Extension -eq ".iso" -or $_.Extension -eq ".vhd"} |Select-Object Name,Directory,@{Name="Size (GB)";Expression={ "{0:N2}" -f ($_.Length / 1GB) }} |Format-Table -AutoSize | Out-String
+
+                    #To find Size of the Folder c:
+                    $TempToLog = $null;
+                    $TempToLog += "`n*******************************************************************************`n"
+                    $TempToLog += vssadmin list shadowstorage 
+                    $TempToLog += "`n*******************************************************************************`n"
+                    $TempToLog += vssadmin list shadows
+                    $TempToLog += "`n*******************************************************************************`n"
+                    $content += " `n `n Size of system information folder on C: drive: `n" + $($TempToLog);
+
+                    #Clean the Child Items from C:\Windows\SoftwareDistribution\* folder
+                    if((Get-ChildItem -Path "C:\Windows\SoftwareDistribution\*" -force -Exclude hidden | Measure-Object).Count -eq 0)
+                    { 
+                        $content += Write-Output "`n`n C:\Windows\SoftwareDistribution\* is Empty"
+                    }
+                    else
+                    { 
+                    $TempToLog = $null;
+                    $TempToLog = (Get-ChildItem "C:\Windows\SoftwareDistribution\*" -Recurse -Force -ErrorAction SilentlyContinue |
+                    Where-Object { ($_.CreationTime -lt $(Get-Date).AddDays(-$using:DaysToDelete)) } );
+                    $content += "`n*******************************************************************************`n"
+                    $content += "`n`n DirectoryName :C:\Windows\SoftwareDistribution\ `n  Files Deleted Below :-`n" +$($TempToLog | %{ "`n $($_.Name)"});
+                    $TempToLog |remove-item -force -recurse -ErrorAction SilentlyContinue
+                    }
+
+
+                    #Clean the Child Items from "C:\Windows\Temp\*" Temporary folder
+                    if((Get-ChildItem -Path "C:\Windows\Temp\*" -force | Measure-Object).Count -eq 0)
+                    { 
+                        $content += "`n*******************************************************************************`n"
+                        $content += Write-Output "`n`n C:\Windows\Temp\* is Empty"
+                    }
+                    else
+                    { 
+                    $TempToLog = $null;
+                    $TempToLog=(Get-ChildItem "C:\Windows\Temp\*" -Recurse -Force -ErrorAction SilentlyContinue);
+                    $content += "`n*******************************************************************************`n"
+                    $content += "`n`n DirectoryName : C:\Windows\Temp\`n  Files Deleted Below :-`n" +$($TempToLog | %{"`n $($_.Name)"});
+                    $TempToLog|remove-item -force -recurse -ErrorAction SilentlyContinue
+                    }
+
+                    #Clean the Child Items from C:\users\*\AppData\Local\Microsoft\Windows\Temporary Internet Files\* Temporary internet file folder
+                    if((Get-ChildItem -Path "C:\users\*\AppData\Local\Microsoft\Windows\Temporary Internet Files\*" -force -ErrorAction SilentlyContinue | Measure-Object).Count -eq 0)
+                    { 
+                        $content += "`n*******************************************************************************`n"
+                        $content += Write-Output "`n`n C:\users\*\AppData\Local\Microsoft\Windows\Temporary Internet Files\* is Empty"
+                    }
+                    else
+                    { 
+                    $TempToLog = $null;                   
+                    $TempToLog = (Get-ChildItem "C:\users\*\AppData\Local\Microsoft\Windows\Temporary Internet Files\*" `
+                    -Recurse -Force -Verbose -ErrorAction SilentlyContinue );
+                    $content += "`n*******************************************************************************`n"
+                    $content += "`n`n DirectoryName : C:\users\*\AppData\Local\Microsoft\Windows\Temporary Internet Files\  `n  Files Deleted Below :- `n" +$($TempToLog | %{"`n $($_.Name)"});
+                    $TempToLog|remove-item -force -recurse -ErrorAction SilentlyContinue
+                    }
+
+                    
+                    #Clean the Child Items from "C:\Windows\SysWOW64\config\systemprofile\AppData\Local\Microsoft\Windows\Temporary Internet Files\Content.IE5\*" Sharepoint Temporary internet file folder
+                    if(Test-Path -Path "C:\Windows\SysWOW64\config\systemprofile\AppData\Local\Microsoft\Windows\Temporary Internet Files\Content.IE5\*")
+                    {
+                        if((Get-ChildItem -Path "C:\Windows\SysWOW64\config\systemprofile\AppData\Local\Microsoft\Windows\Temporary Internet Files\Content.IE5\*" -force | Measure-Object).Count -eq 0)
+                        { 
+                            $content += "`n*******************************************************************************`n"
+                            $content += Write-Output "`n`n C:\Windows\SysWOW64\config\systemprofile\AppData\Local\Microsoft\Windows\Temporary Internet Files\Content.IE5\* is Empty"
+                        }
+                        else
+                        { 
+                        $TempToLog = $null;
+                        $TempToLog +=(Get-ChildItem "C:\Windows\SysWOW64\config\systemprofile\AppData\Local\Microsoft\Windows\Temporary Internet Files\Content.IE5\*" -Recurse -Force -ErrorAction SilentlyContinue |
+                        Where-Object { ($_.CreationTime -le $(Get-Date).AddDays(-$using:IISLogsDaysToDelete))})
+                        $content += "`n*******************************************************************************`n"
+                        $content += "`n`n DirectoryName : C:\Windows\SysWOW64\config\systemprofile\AppData\Local\Microsoft\Windows\Temporary Internet Files\Content.IE5\ `n  Files Deleted Below :-`n" +$($TempToLog | %{"`n $($_.Name)"});
+                        $TempToLog|remove-item -force -recurse -ErrorAction SilentlyContinue
+                        }
+                    }
+                    else
+                    {
+                        $content += "`n*******************************************************************************`n"
+                        $content += Write-Output "`n`n C:\Windows\SysWOW64\config\systemprofile\AppData\Local\Microsoft\Windows\Temporary Internet Files\Content.IE5\* Does not exists"
+                    }
+                    
+                    #Clean the Child Items from "C:\Windows\System32\config\systemprofile\AppData\Local\Microsoft\Windows\Temporary Internet Files\Content.IE5\*" Sharepoint Temporary internet file folder
+                    if(Test-Path -Path "C:\Windows\System32\config\systemprofile\AppData\Local\Microsoft\Windows\Temporary Internet Files\Content.IE5\*")
+                    {
+                        if((Get-ChildItem -Path "C:\Windows\System32\config\systemprofile\AppData\Local\Microsoft\Windows\Temporary Internet Files\Content.IE5\*" -force | Measure-Object).Count -eq 0)
+                        { 
+                            $content += "`n*******************************************************************************`n"
+                            $content += Write-Output "`n`n C:\Windows\System32\config\systemprofile\AppData\Local\Microsoft\Windows\Temporary Internet Files\Content.IE5\* is Empty"
+                        }
+                        else
+                        { 
+                        $TempToLog = $null;
+                        $TempToLog +=(Get-ChildItem "C:\Windows\System32\config\systemprofile\AppData\Local\Microsoft\Windows\Temporary Internet Files\Content.IE5\*" -Recurse -Force -ErrorAction SilentlyContinue |
+                        Where-Object { ($_.CreationTime -le $(Get-Date).AddDays(-$using:IISLogsDaysToDelete))})
+                        $content += "`n*******************************************************************************`n"
+                        $content += "`n`n DirectoryName : C:\Windows\System32\config\systemprofile\AppData\Local\Microsoft\Windows\Temporary Internet Files\Content.IE5\ `n  Files Deleted Below :-`n" +$($TempToLog | %{"`n $($_.Name)"});
+                        $TempToLog|remove-item -force -recurse -ErrorAction SilentlyContinue
+                        }
+                    }
+                    else
+                    {
+                        $content += "`n*******************************************************************************`n"
+                        $content += Write-Output "`n`n C:\Windows\System32\config\systemprofile\AppData\Local\Microsoft\Windows\Temporary Internet Files\Content.IE5\* Does not exists"
+                    }
+                    
+                    
+
+                    #Clean the child items from C:\inetpub\logs\* Inetpub log file folder
+                    if((Get-ChildItem -Path "C:\inetpub\logs\*" -force | Measure-Object).Count -eq 0)
+                    { 
+                        $content += "`n*******************************************************************************`n"
+                        $content += Write-Output "`n`n C:\inetpub\logs\* is Empty"
+                    }
+                    else
+                    { 
+                    $TempToLog = $null;                   
+                    $TempToLog +=(Get-ChildItem -Path "C:\inetpub\logs\LogFiles\W3SVC*\*" -Recurse -Force  -ErrorAction SilentlyContinue |
+                    Where-Object { ($_.CreationTime -le $(Get-Date).AddDays(-$using:IISLogsDaysToDelete))})
+                    $content += "`n*******************************************************************************`n"
+                    $content += "`n`n DirectoryName : C:\inetpub\logs\LogFiles\ `n  Files Deleted Below :- `n" +$($TempToLog | %{"`n $($_.Name)"});
+                    $TempToLog|Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
+                    }
+
+                    #Deleting items from Recycle Bin
+                    $RecycleBinItems = @(Get-ChildItem "c:\`$Recycle.Bin" -Recurse -Force -Exclude '*.ini'  |%{Get-ChildItem $_.FullName -force -recurse});
+                    if($RecycleBinItems.count -eq 0)
+                    {
+                    $content += "`n*******************************************************************************`n"
+                    $content += "`n Recycle Bin iS Empty"
+                    }
+                    else
+                    {
+                    $content += "`n*******************************************************************************`n"
+                    $content += "`n Recycle Bin Deleted files are:" 
+                    $content += Get-ChildItem -Path $RecycleBinItems -ErrorAction SilentlyContinue | %{"`n$($_.Name)"} 
+                    $RecycleBinItems|remove-item -force -Recurse -exclude '*.ini' -confirm:$false -ErrorAction SilentlyContinue;
+                    }
+
+                    ######
+                    #Deleting files from safe to remove path
+                    $SafeToDeleteFolders = @('C:\Windows\CCMCache\*','C:\Windows\Logs\CBS\*','C:\Windows\System32\LogFiles\HTTPERR\*');
+                    $LookBackTime = 90;
+                    foreach($Folder in $SafeToDeleteFolders)
+                    {
+   
+                       if((Get-ChildItem -Path $Folder -force -Exclude hidden | ?{$_.LastWriteTime -gt $((Get-Date).adddays(-$LookBackTime))} | Measure-Object).Count -eq 0) 
+                        { 
+                            $content += Write-Output "`n`n $Folder is Empty"
+                        }
+                        else
+                        { 
+                            $TempToLog = $null;
+                            $TempToLog = (Get-ChildItem -Path $Folder -force -Exclude hidden | ?{$_.LastWriteTime -gt $((Get-Date).adddays(-$LookBackTime))} );
+                            $content += "`n*******************************************************************************`n"
+                            $content += "`n`n DirectoryName : $Folder `n  Files Deleted Below :-`n" +$($TempToLog | %{ "`n $($_.Name)"});
+                            $TempToLog |remove-item -force -recurse -ErrorAction SilentlyContinue
+                        }
+
+                    }
+                 
+                    #Resize the shadow copy
+                    $status = (vssadmin resize shadowstorage /for=C: /on=C: /maxsize=1024MB)
+                    if($status[-1] -like "*Successfully resized*" -eq "True")
+                    {
+                        $content += "`n*******************************************************************************`n"
+                        $content += "`n`n Successfully resized the C Drive shadow copy size `n`n ";
+                        #Write-Host "Success"
+                    }
+                    else
+                    {
+                        $content += "`n*******************************************************************************`n"
+                        $content += "`n`n Error resizing the C Drive shadow copy size `n`n";
+                        #Write-Host "Failure"
+                    }
+
+
+
+
+
+                    Write-Output "Threshold Value:`n $Threshold" 
+                    Write-Output "Page File Size:`n $Pagefile"  
+                    Write-Output "ISO & VHD Files:`n $ISOVHDFiles" 
+                    write-output "`n $content" 
+                    
+    register: CDrive_cleanup_result
+  - debug:
+      msg: "{{ CDrive_cleanup_result }}"
+    when: CDrive_cleanup_result is defined
+  - set_fact: 
+      CDrive_cleanup_result_output: "{{ CDrive_cleanup_result.stdout }}"
+    when: CDrive_cleanup_result is defined
+  rescue:
+    - name: Setting ping ouput fail response
+      set_fact:
+        CDrive_cleanup_result_output: "Automation was unable to clean C drive"
+
+        
+- name: Block to fetch the used disk size of C drive in percentage
+  win_shell: |
+             $space= Get-PSDrive C | Select-Object Free,Used
+             $total = $space.Free + $space.Used
+             $free_space_in_percentage = ($space.Free/$total)*100
+             $used_space_in_percentage = ($space.Used/$total)*100
+             [Math]::Round($used_space_in_percentage,2)
+  register: after_drive_space
+- debug:
+      msg: "{{ after_drive_space }}"
+  when: after_drive_space is defined
+- name: Set fact of C drive space after cleanup
+  set_fact:
+    after_drive_size: "{{ after_drive_space.stdout | trim }}"
+  when: after_drive_space is defined  
+- name: Status of C drive space after cleanup
+  set_fact:
+    after_drive_space_output: "Status of C drive space after cleanup in % {{ after_drive_space.stdout_lines }}"
+  when: after_drive_space is defined
+    
+- name: Setting after_drive_space_output flag value as true
+  set_fact:
+    after_drive_space_flag: true
+  when: after_drive_size | int >= 80
+  
+- name: Setting after_drive_space_output flag value as false
+  set_fact:
+    after_drive_space_flag: false
+  when: after_drive_size | int <= 80

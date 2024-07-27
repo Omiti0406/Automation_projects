@@ -1,0 +1,143 @@
+---
+##########################################################################
+# Description: This playbook will be triggered to process the individual # 
+#              tickets with the complete workflow.                       #
+##########################################################################
+- name: Extracting required inputs from the ticket.
+  block:
+    - name: Pull the incident number
+      set_fact:
+        ticketNo: "{{ticket.number}}"
+    - include_role:
+        name: servicenow_inc
+        tasks_from: progress
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Automation has started working on the ticket. Automation process id- {{awx_job_id}}"
+    - name: pull the required inputs from the ticket
+      set_fact:
+        server: "{{ ticket.cmdb_ci.display_value }}"
+
+
+    # To check verify the fetched inputs and update the ticket incase of insufficient data.
+    - name: update the ticket if the inputs are not being pulled properly
+      include_role:
+        name: servicenow_inc
+        tasks_from: failure_worknotes
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Error occured: Automation is unable to process the ticket, seems like required input parameters server name is either blank or not in the proper format. "
+      when: (server is not defined) or (server == "") 
+  rescue:
+    - include_role:
+        name: servicenow_inc
+        tasks_from: failure_worknotes
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Error occured: Automation is unable to process the ticket, seems like required input parameters server name is either blank or not in the proper format."
+
+    
+- name: Printing INC details
+  debug:
+    msg: "Processing -> {{ticketNo}}"
+
+- name: Checking server connectivity 
+  block:
+    - wait_for_connection:
+        timeout: 10
+      register: conncheck
+      delegate_to: "{{ server }}.ENT.AD.NTRS.COM"  
+  rescue:
+    - include_role:
+        name: servicenow_inc
+        tasks_from: failure_worknotes
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Automation tried to reach the server but {{server}} is not reachable. Please handle it manually"
+    
+- name: start processing the ticket and call the playbook to execute the wintel commands.
+  when: ((server is defined) or (server != "")) and (conncheck is succeeded)
+  block:
+  
+     #importing host_down playbook to run wintel commands 
+    - import_tasks: wintel_host_down.yml
+      delegate_to: "{{ server }}.ENT.AD.NTRS.COM"
+
+    - name: posting the work notes of ping command
+      include_role:
+        name: servicenow_inc
+        tasks_from: work_notes_only
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "{{ ping_output_response_msg }}"
+
+    - name: posting the work notes for C drive    
+      include_role:
+        name: servicenow_inc
+        tasks_from: work_notes_only
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "{{ c_drive_response_msg }}"
+      when: ping_result is defined and ping_result.stdout_lines != []
+ 
+    - name: posting the work notes for 1074 event logs
+      include_role:
+        name: servicenow_inc
+        tasks_from: work_notes_only
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "{{ event1074_response_msg }}"
+      when: (c_folders is defined ) and (c_folders != []) and (ping_result.stdout_lines != []) and (e_status_1074 != "false") 
+   
+
+    - name: posting the work notes for 41 event logs
+      include_role:
+        name: servicenow_inc
+        tasks_from: work_notes_only
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "{{ event41_response_msg }}"
+      when: c_folders is defined and c_folders != [] and ping_result.stdout_lines != [] and (e_status_41 != "false")
+   
+
+      #Final worknotes on the ticket
+    - include_role:
+        name: servicenow_inc
+        tasks_from: work_notes_only
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Automation has added the below comments, engineer can have a look and proceed further."
+    - include_role:
+        name: servicenow_inc
+        tasks_from: user_assignment
+      vars:
+        inc_no: "{{ticketNo}}"
+        user_assigned_to: ""    
+    - name: Adding ticket as successfully executed list
+      set_fact:
+        success_tickets: "{{success_tickets + [ticketNo]}}"
+  # To capture the errors in the playbook.
+  rescue:
+    - include_role:
+        name: servicenow_inc
+        tasks_from: failure_worknotes
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Error occured: Automation is unable to process the ticket, hence routing it for manual intervention."
+    - name: Trigger email on failure
+      include_role:
+        name: mail_notification
+        tasks_from: failure_mail
+      vars:
+        ticket_id: "{{ticketNo}}"
+        
+- set_fact:
+    ticketNo: ""
+    server: ""
+    ping_output_response_msg: ""
+    c_drive_response_msg: ""
+    event1074_response_msg: ""
+    event41_response_msg: ""
+####################################END ###########################################    
+    
+    

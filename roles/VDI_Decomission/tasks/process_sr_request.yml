@@ -1,0 +1,160 @@
+---
+###########################################################################
+#                          !!Description!! 
+# This playbook will be called to process the individual SR tickets.
+###########################################################################
+- name: fetching inputs from the ticket
+  block:
+  - set_fact:
+      sctaskNo: "{{Sctask_detail.number}}"      
+      ritm_no: "{{Sctask_detail.request_item.display_value}}"
+      Created_on: "{{Sctask_detail.sys_created_on}}"  
+      
+  - name: To put ticket in-progress state and add the starting worknotes.
+    include_role: 
+      name: servicenow_sctask    
+      tasks_from: progress
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "Automation has started working on the ticket. Automation process ID: {{awx_job_id }}"
+  - name: reading LANID and AD group name
+    set_fact:
+      LANID: "{{Sctask_detail.u_details.split('Login ID:')[1] | split('\n') | first | trim}}"  
+  - name: Put a worknotes on the ticket incase of insufficient data
+    include_role:
+      name: servicenow_sctask
+      tasks_from: failure_worknotes
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "Error occured: Insufficient input data, automation is unable to complete the request.\n LAN ID: '{{LANID}}'"
+    when: (LANID is not defined) and  (LANID == "")
+
+  rescue:
+  - include_role:
+      name: servicenow_sctask
+      tasks_from: failure_worknotes
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "Error occured: Automation is unable to find the required input details from the the ticket."
+  
+
+- name: Check the AD server connectivity.
+  block:
+  - wait_for:
+      host: "{{Windows_host}}" 
+      port: "{{ad_srv_port}}"
+      timeout: "{{ad_srv_timeout}}"
+    register: connCheck
+  rescue:
+  - include_role:
+      name: servicenow_sctask
+      tasks_from: failure_worknotes
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "Automation failed to complete the request, AD server is not reachable."
+      
+- name: Checking user ID is enable or diabled    
+  when: (connCheck is defined and connCheck is succeeded)   
+  block: 
+
+  - include_role: 
+      name: VDI_Decomission 
+      #tasks_from: Check_ID
+      tasks_from: User_Status  
+  
+  - name: Update the output of user if ID is disable    
+    include_role:
+      name: servicenow_sctask
+      tasks_from: work_notes_only
+    vars:
+      sr_number: "{{sctaskNo}}" 
+      worknotes_msg: " ID is disable, proceeding fruther for VDI decommision" 
+    when: (User_output is defined and User_output |regex_search('is disabled') == 'is disabled') 
+    
+  - name: Update the output of user if ID is enable      
+    include_role:
+      name: servicenow_sctask
+      tasks_from: failure_worknotes
+    vars:
+      sr_number: "{{sctaskNo}}" 
+      worknotes_msg: "ID is enable, Assigning ticket for manual intervention" 
+    when: (User_output is defined and User_output |regex_search('not disabled') == 'not disabled') 
+      
+  rescue:
+  - include_role:
+      name: servicenow_sctask
+      tasks_from: failure_worknotes
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "Automation failed to complete the request."
+    
+
+- name: Powershell Script
+  when: (User_output is defined and User_output |regex_search('is disabled') == 'is disabled' )
+  block:
+  - set_fact:
+      LANid: "{{LANID + '@ntrs.com'}}"
+
+      
+  - name: Execute powershell script 
+    script: "roles/VDI_Decomission/tasks/VDI_Decom.ps1"   
+    environment:
+      LanID: "{{LANid}}" 
+      ritm_no: "{{sctaskNo}}"
+      Created_on: "{{Created_on}}"
+      cluster_user: "{{my_user}}"
+      cluster_pass: "{{my_pass}}"
+      
+      
+    register: VDI_decom_output 
+    delegate_to: "{{Windows_host}}" 
+  - debug:
+      msg: "{{VDI_decom_output}}"
+  - set_fact:
+      VDI_Output: "{{VDI_decom_output.stdout_lines}}"
+  - name: Update the output if two VDI is found in the output   
+    include_role:
+      name: servicenow_sctask
+      tasks_from: work_notes_only
+    vars:
+      sr_number: "{{sctaskNo}}" 
+      worknotes_msg: "Automation added the below comment please check and varify \n {{VDI_Output}}"   
+    when: (VDI_Output is defined and VDI_Output != "")  
+  - include_role:
+      name: servicenow_sctask
+      tasks_from: user_assignment
+    vars:
+      sr_number: "{{sctaskNo}}"
+      user_assigned_to: ""
+    when: (VDI_Output is defined and VDI_Output != "")          
+  
+  - name: Add ticket to the metering matrix
+    set_fact:
+      success_tickets: "{{success_tickets + [sctaskNo]}}"
+  rescue:
+  - include_role:
+      name: servicenow_sctask
+      tasks_from: failure_worknotes
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "Automation failed to complete the request." 
+
+  - name: In case of any failure, send an email to automation team to notify about failure.
+    include_role:
+      name: VDI_Decomission
+      tasks_from: failure_mail
+    when: (VDI_Output is failed and (VDI_Output.msg is defined or VDI_Output == ""))        
+
+    
+
+- set_fact:
+    LANID: ""
+    sctaskNo: ""
+    connCheck: "" 
+    ad_resolved_message: ""
+    VDI_Output: ""
+    User_output: ""
+    LANid: ""
+    ritm_no: "" 
+    Created_on: ""  
+    

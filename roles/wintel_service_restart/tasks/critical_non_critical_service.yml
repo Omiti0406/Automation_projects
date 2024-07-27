@@ -1,0 +1,52 @@
+
+- name: Execute critical or non-critical script
+  block:
+  - name: check critical or non-critical services
+    win_shell: |
+                  $ServiceName = "{{ string_result_output }}"
+                     
+                  
+                  $criticalServices = "Server","Remote Procedure Call (RPC)","DNS Client","DHCP Client","Windows Time","Netlogon","Plug and Play","Workstation"
+                  
+                  $out = $null
+                  try{
+                      foreach($Critical in $criticalServices){
+                  
+                          if($ServiceName -eq $Critical)
+                          {
+                              $out = "Critical"
+                          }
+                      }
+                  
+                    
+                  
+                      if($out -eq $null){
+                          $out = "Not_exist"
+                      
+                      }
+                      
+                  }catch{
+                      $_
+                  } 
+                  $out
+    delegate_to: "wpcmxsp05.ENT.AD.NTRS.COM"
+    register: critical_service_check
+      
+  - debug: 
+        msg: "{{critical_service_check.stdout_lines}}"
+    when: critical_service_check.stdout_lines is defined
+  
+  - debug: 
+        msg: "Automation failed - {{ critical_service_check.stderr }}"
+    when: critical_service_check.stderr != ""
+  
+  - name: Setting the value of type of process
+    set_fact:
+      critical_service_check_output: "{{ critical_service_check.stdout }}"
+    
+  rescue:
+  - name: set the error output 
+    set_fact:
+      response_msg_temp: "Automation Failed to find server path. Please check manually"   
+
+

@@ -1,0 +1,41 @@
+- name: Fecth the sctask from CSV file
+  block:
+  - name: Fetch the sctask
+    win_shell: |
+          $Csv_file = Import-Csv -Path "\\WPCHOLU01\Ansible Solutions\VDI_Sctask\VDI_Sctask.csv"  
+          $today = (Get-Date).AddDays(-3)
+              foreach($Csv_Data in $Csv_file)
+              {   
+                
+                $date = [DateTime]::Parse($Csv_Data.Creation_Date)
+                if($today -gt $date -and $Csv_Data.State -ne "Triggered")
+                {
+                  #write-host "Found old ticket"
+                  $Sctask_no = ($Csv_Data.Request_Number)
+                  $Csv_Data.State = "Triggered"
+                  write-host $Sctask_no
+
+                }
+              }
+              $Csv_file | Export-Csv -Path "\\WPCHOLU01\Ansible Solutions\VDI_Sctask\VDI_Sctask.csv" -NoTypeInformation     
+              write-host $Exports
+      
+    delegate_to: "{{Windows_host1}}" 
+    register: Sctask
+
+  - set_fact:
+      sctasks: "{{Sctask.stdout_lines}}"  
+
+  rescue:   
+  - name: failed to read data from csv file
+    debug:
+      msg: "Error occured, failed to read data from csv input file"
+
+
+   
+     
+
+
+
+  
+                

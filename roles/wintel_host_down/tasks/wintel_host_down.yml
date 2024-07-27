@@ -1,0 +1,111 @@
+- name: Inside Host_down playbook
+  debug:
+    msg: "Inside host_down playbook -> {{ server }}"
+
+- name : setting flag for event status
+  set_fact:
+    e_status_1074: False
+    e_status_41: False
+
+
+- name: ping the target server .
+  block:
+    - name: Executing ping command
+      win_shell: ping "{{ server }}"
+      register: ping_result
+    - name: Setting ping ouput success response  
+      set_fact:
+        ping_output_response_msg: " Ping Output {{ ping_result.stdout }}"
+      when: ping_result is defined
+  rescue:
+    - name: Setting ping ouput fail response
+      set_fact:
+        ping_output_response_msg: "Automation was unable to run the ping command"
+ 
+      
+- name: check C drive of the target server
+  when: ping_result is defined and ping_result.stdout_lines != []
+  block:
+  - ansible.windows.win_find:
+      paths: C:\
+      recurse: no
+      file_type: directory 
+    register: file_op
+  - name: Setting output of C drive 
+    set_fact:
+      c_folders: "{{ file_op.files | map(attribute='path') | list}}"      
+    when: file_op is defined  
+  - name: Setting response message of C drive  
+    set_fact:
+      c_drive_response_msg: "Orchestrator is able to connect C drive on {{server}} and below is the result : \n {{ c_folders | replace(',','\n\r') | replace('[','') | replace(']','')}} "
+    when: c_folders is defined and c_folders != []
+  rescue:
+  - name: Setting response message of drive fetch failure
+    set_fact:
+      c_drive_response_msg: "Automation was unable to fetch the C drive and its folders"
+
+
+- name: checking the events 1074
+  when: c_folders is defined and c_folders != [] and ping_result is defined and ping_result.stdout_lines != []
+  block:
+  - name: checking the events 1074
+    include_role:
+      name: wintel_host_down
+      tasks_from: fetch_events
+    vars:
+      event_id: 1074
+  - debug:
+      msg: "{{ event_message }}"
+  - name: Setting output of 1074 event
+    set_fact:
+      event_message1074: "{{ event_message }}"
+    when: (event_status == "success") and ('"restart" in event_message' or '"unexpected" in event_message')
+  - name: Setting status value as true
+    set_fact:
+      e_status_1074: true
+    when: (event_status == "success") and ('"restart" in event_message' or '"unexpected" in event_message')
+  - name: Setting response message of 1074 drive
+    set_fact:
+      event1074_response_msg: "Below is the last reboot reason.: \n{{event_message1074}}"
+    when: (event_status == "success") and ('"restart" in event_message' or '"unexpected" in event_message')
+  - name: Setting response message when no logs found
+    set_fact:
+      event1074_response_msg: "No Event Logs Found for Event id 1074"
+    when: event_message == ""
+  rescue:
+  - name: Setting response message of 1failure of 1074 events
+    set_fact:
+      event1074_response_msg: "Automation was unable to fetch the logs for event 1074"
+
+      
+- name: checking the events 41
+  when: c_folders is defined and c_folders != [] and ping_result is defined and ping_result.stdout_lines != []
+  block:
+  - name: checking the events 41
+    include_role:
+      name: wintel_host_down
+      tasks_from: fetch_events
+    vars:
+      event_id: 41
+  - name: Setting output of 41 events
+    set_fact:
+      event_message41: "{{ event_message }}"
+    when: (event_status == "success")
+  - name: Setting status value as true
+    set_fact:
+      e_status_41: true
+    when: (event_status == "success")
+  - name: Setting response message of 41 logs
+    set_fact:
+      event41_response_msg: "Below is the last reboot reason.: \n{{event_message41}}"
+    when: (event_status == "success")
+  - name: Setting response message of no no 41 logs found
+    set_fact:
+      event41_response_msg: "No Event Logs Found for Event id 41"
+    when: event_message == ""    
+  rescue:
+  - name: Setting failure response message of 41 logs
+    set_fact:
+      event41_response_msg: "Automation was unable to fetch the logs for event 41"
+
+     

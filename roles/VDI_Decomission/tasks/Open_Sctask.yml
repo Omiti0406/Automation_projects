@@ -1,0 +1,29 @@
+- debug:
+    msg: "{{ticket_detail}}" 
+  
+- name: Search for SR assigned to group, return specific fields
+  servicenow.servicenow.snow_record_find:
+    username: "{{ snow_user }}"
+    password: "{{ snow_passwd }}"
+    instance: "{{ snow_instance }}"
+    display_value: true
+    table: sc_task
+    query: "active=true^state=-5^number={{ticket_detail}}"
+    
+    return_fields:
+      - number
+      - parent
+      - sys_id 
+      - u_details 
+      - request_item
+      - sys_created_on    
+  register: ticket_output
+- debug:
+    msg: "{{ticket_output}}"
+   
+- set_fact:
+    Sctask_details: "{{ ticket_output.record }}" 
+     
+  
+
+

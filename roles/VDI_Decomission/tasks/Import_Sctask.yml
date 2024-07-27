@@ -1,0 +1,55 @@
+---
+- name: fetch all the sctask of VDI decom and import it into CSV file
+  block:  
+  - name: fetch sctask no. and created on 
+    set_fact:
+        sctaskNo: "{{sctask.number}}"
+        Created_on: "{{sctask.sys_created_on}}" 
+        State: "Queued"             
+
+  - name: Import Data into CSV file
+    win_shell: 
+              | 
+          $Csv_Data = @()
+          $Properties = [Ordered] @{
+                                    Request_Number = ''
+                                    Creation_Date = '' 
+                                    State = ''
+                        } 
+                                
+          $Csv_File = "\\WPCHOLU01\Ansible Solutions\VDI_Sctask\VDI_Sctask.csv"
+          $Properties.Request_Number = "{{sctaskNo}}"
+          $Properties.Creation_Date = "{{Created_on}}"
+          $Properties.State = "{{State}}"
+
+          $Csv_Data = New-Object -TypeName psobject -Property $Properties -ErrorAction SilentlyContinue;
+          $Csv_Data | Export-Csv -Path $Csv_File -Append -Force -NoTypeInformation -ErrorAction SilentlyContinue; 
+          
+    delegate_to: "{{Windows_host1}}"   
+  rescue:   
+  - name: failed to import data into CSV
+    debug:
+      msg: "Error occured, failed to import data into CSV"
+
+
+
+- name: Change the state of INC to pending state 
+  servicenow.servicenow.snow_record:
+    username: "{{ snow_user }}"
+    password: "{{ snow_passwd }}"
+    instance: "{{ snow_instance }}"
+    state: present
+    table: sc_task
+    number: "{{ sctaskNo }}"
+    data:
+      state: "Pending"
+      work_notes: "Automation started working on ticket "
+      assigned_to: "{{ snow_user }}"
+  delegate_to: localhost
+  become: false 
+
+
+
+    
+      
+       

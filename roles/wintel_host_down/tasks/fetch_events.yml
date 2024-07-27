@@ -1,0 +1,22 @@
+- name: Executing Powershell to get event logs
+  block:
+  - win_shell: 
+        |
+        $dt = Get-EventLog -LogName System | Where-Object{$_.EventID -eq "{{ event_id }}"} | Select-Object -First 1 | Select-Object source,username,message,TimeGenerated 
+        foreach( $t in $dt)
+        {
+           Write-Host "`n Source - " $t.Source  "`n Username - "  $t.Username  "`n Message - " + $t.message "`n Time Generated- " + $t.TimeGenerated 
+        }
+    register: event_op
+  rescue:
+  - debug:
+      var: "Automation Failed - while fetching the event details {{ event_op.msg }}"
+    when: event_op.msg is defined
+- set_fact:
+    event_status: "success"
+    event_message: "{{ event_op.stdout }}"
+  when: event_op.stdout != ""
+- set_fact:
+    event_status: "failed"
+    event_message: ""
+  when: event_op.stdout == ""

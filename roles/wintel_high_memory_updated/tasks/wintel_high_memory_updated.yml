@@ -1,0 +1,79 @@
+- name: Inside wintel_high_memory_updated playbook
+  debug:
+    msg: "Inside wintel_high_memory_updated playbook -> {{ server }}"
+
+- name: Fetch top 3 processes
+  block:
+  - name: Fetch top 3 processes
+    win_shell: |
+                  $timer = 0
+                  $process_all = $null
+                  do{
+
+                    $process = Get-Process |Sort-Object WS -Descending|Select -First 3 | Select -ExpandProperty ProcessName
+                    $process_details = Get-Process |Sort-Object WS -Descending|Select -First 3 | select ProcessName, @{Name="Memory(MB)";Expression={$_.ws / 1MB}}
+    
+                    Start-Sleep 2
+                    $timer = $timer + 1
+                    $process_all += $process_details
+                    $process_details | Format-Table -AutoSize  
+                    Write-Host "`nAutomation will wait for 30 sec to get next utilization snap`n`n"
+
+                    }until($timer -eq 3)  
+
+    register: process_result
+  - name: Debug of Powershell Processes
+    debug:
+      msg: "{{ process_result }}"
+    when: process_result is defined
+  - name: Setting the value to process_result_outpt
+    set_fact: 
+      process_result_output: "{{ process_result.stdout }}"
+    when: process_result is defined
+  
+  - name: Highest Memory Utilisation
+    win_shell: |
+                    $timer = 0
+                    $process_all = $null
+
+                    $process = Get-Process |Sort-Object WS -Descending|Select -First 1 | Select -ExpandProperty ProcessName
+                    $process_details = Get-Process |Sort-Object WS -Descending|Select -First 1 | select ProcessName, @{Name="Memory(MB)";Expression={$_.ws / 1MB}}
+    
+                    $HighMem_Process = $process_details | Select -ExpandProperty ProcessName  |Group-Object | Sort-Object -Descending| Select -First 1 -ExpandProperty Name
+                    $SQLProcess = "sqlservr","sqlagent","ssms","Memory Compression"
+                    $NonCritical = "Sysmon","sfc","iptray","Splunkd","CcmExec","Healthservices","ntnit","mgssecsvc","MicrosoftDependencyAgent","MsMpEng"
+                    
+                    if($HighMem_Process -in $SQLProcess)
+                    {
+                      $process_type="Sql"
+                    }
+                    elseif($HighMem_Process -in $NonCritical)
+                    {
+                      $process_type="Non-Critical"
+                      Write-host "Stopping process $HighMem_Process"
+                      Stop-Process -Name iexplore
+                      Start-Process -FilePath iexplore -PassThru
+                      #Stop-Process -Name $HighMem_Process
+                      Sleep 2
+                      Write-host "Starting process $HighMem_Process"
+                      #Start-Process -FilePath $serv_to_start -PassThru
+                    }
+                    else
+                    {
+                      $process_type="No match" 
+                    }
+
+                     $process_type                 
+    register: process_type_result
+  - name: Debug of Process Type
+    debug:
+      msg: "{{ process_type_result.stdout }}"
+  - name: Setting the value of type of process
+    set_fact:
+      process_type_output: "{{ process_type_result.stdout }}"
+
+  rescue:
+  - name: set the error output 
+    set_fact:
+      response_msg_temp: "Automation Fail to find high memory utilisation processes. Please check manually"
+  

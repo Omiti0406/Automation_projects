@@ -1,0 +1,112 @@
+---
+##########################################################################
+# Description: This playbook will be triggered to process the individual # 
+#              tickets with the complete workflow.                       #
+##########################################################################
+
+- name: Extracting required inputs from the ticket.
+  block:
+    - name: Pull the incident number
+      set_fact:
+        ticketNo: "{{ticket.number}}"
+    
+    - name: pull the required inputs from the ticket
+      set_fact:
+          server: "{{ ticket.cmdb_ci.display_value }}"
+          Description: "{{ticket.description}}"
+          
+        
+    - debug:
+        msg: "Server name: {{ server }}"
+    - debug:
+        msg: "service name: {{ Description}}"
+
+    - name: update the ticket if the inputs are not being pulled properly
+      include_role:
+        name: servicenow_inc
+        tasks_from: failure_worknotes
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Error occured: Insufficient input data, automation is unable to process the incident. \n server: {{server}} "
+      when: (server is not defined) or (server == "") 
+  rescue:
+    - include_role:
+        name: servicenow_inc
+        tasks_from: failure_worknotes
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Error occured: Automation is unable to process the ticket, seems like required input parameters (server) is eighter blank or not in the proper format."
+ 
+- name: print the inc number
+  debug:
+    msg: "Processing -> {{ticketNo}}"
+
+- name: call the playbook to execute the split_service
+  when: (server is defined) and (server !="") 
+  block:
+    - name: task to check split service name
+      import_tasks: split_service_name.yml
+      delegate_to: "wpcmxsp05.ENT.AD.NTRS.COM" 
+    
+    - name: Update the output in the worknotes  
+      include_role:
+        name: servicenow_inc
+        tasks_from: work_notes_only
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "string_result: {{string_result_output}}"
+    
+    - name: task to check critial service
+      import_tasks: critical_non_critical_service.yml    
+    - name: Update the output in the worknotes  
+      include_role:
+        name: servicenow_inc
+        tasks_from: work_notes_only
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "critical_service : {{critical_service_check_output}}"
+     
+    - name: task to start service
+      import_tasks: start_service.yml
+    - name: Update the output in the worknotes  
+      include_role:
+        name: servicenow_inc
+        tasks_from: work_notes_only
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "start_sevice : {{start_service_output}}"
+        
+    - include_role:
+        name: servicenow_inc
+        tasks_from: work_notes_only
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Automation has added the below comments, engineer can have a look and proceed further."
+    - include_role:
+        name: servicenow_inc
+        tasks_from: user_assignment
+      vars:
+        inc_no: "{{ticketNo}}"
+        user_assigned_to: ""    
+    - name: Adding ticket as successfully executed list
+      set_fact:
+        success_tickets: "{{success_tickets + [ticketNo]}}"
+ 
+  rescue:
+    - include_role:
+        name: servicenow_inc
+        tasks_from: failure_worknotes
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Error occured: Automation is unable to process the ticket, hence routing it for manual intervention."
+    
+- name: clearning the inputs of the ticket at the end
+  set_fact:
+    ticketNo: ""
+    server: ""
+    string_result_output: ""
+    start_service_output: ""
+    critical_service_check_output: ""
+    Description: ""
+    
+    

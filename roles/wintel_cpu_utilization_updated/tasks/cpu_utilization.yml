@@ -1,0 +1,63 @@
+- name: "CPU Utilization script"
+  block:
+    - name: CPU Utilization
+      win_shell: |
+        $timer = 0
+        $process_all = $null
+        do{
+            $process = Get-Process |Sort-Object CPU -Descending|Select -First 3 | Select -ExpandProperty ProcessName
+            $process_details = Get-Process |Sort-Object CPU -Descending|Select -First 3
+            Start-Sleep 30
+            $timer = $timer + 1
+            $process_all += $process_details
+            $allProcessdata += $process
+            write-host "`nOrchestrator will wait for 30 sec to get next utilization snap`n`n"
+            $process_details | select ID,Handles, CPU,ProcessName | Format-Table -AutoSize
+        }
+
+        until($timer -eq 3)
+        $HighMem_Process = $process_all | Select -ExpandProperty ProcessName  |Group-Object | Sort-Object -Descending| Select -First 1 -ExpandProperty Name
+        #$HighMem_Process
+
+        $SQLProcess = "sqlservr","sqlagent","ssms"
+        $App_Process = "w3wp","java"
+        $NonCritical = "Sysmon","sfc","iptray","Splunkd","CcmExec","Healthservices","ntnit","mgssecsvc","services","MicrosoftDependencyAgent"
+        $Sql = @($null)
+        $App = @($null)
+        $NonCrtcl = @($null)
+
+        if($HighMem_Process -in $SQLProcess){
+            $msg="Sql"   
+        }
+        elseif($HighMem_Process -in $App_Process){
+            $msg="App"  
+        }
+        elseif($HighMem_Process -in $NonCritical){
+            $msg="Non-Critical"
+            Stop-Process -Name $HighMem_Process -Force -ErrorAction SilentlyContinue
+            Sleep 10
+            $serv_to_start = $HighMem_Process + ".exe"
+            Start-Process -FilePath $serv_to_start -PassThru -ErrorAction SilentlyContinue       
+        }
+        else{
+            $msg="No match" 
+        }
+        $main = "," +"`n $msg"
+        write-Host $main
+
+      register: cpu_result
+    - debug: 
+        msg: "{{cpu_result.stdout_lines}}"
+      when: cpu_result.stdout_lines is defined
+    - debug: 
+        msg: "Automation failed - {{ cpu_result.stderr }}"
+      when: cpu_result.stderr != ""
+    - name: Setting the value of type of process
+      set_fact:
+        process_type_output: "{{ cpu_result.stdout }}"
+        
+  rescue:
+    - set_fact:
+       result_msg_temp: "An error occurred while running the script. {{ cpu_result.msg }}"
+      when: cpu_result.msg is defined
+      

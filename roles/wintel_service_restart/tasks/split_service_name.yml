@@ -1,0 +1,39 @@
+- name: Execute Split Service Name
+  block:
+  - name: Split Service Name
+    win_shell: |
+                <#The Windows Server service on server SDCBAKP18.ent.ad.ntrs.com has stopped running
+                The DHCP service on server WPCDNTD005.ent.ad.ntrs.com has stopped running
+                The DNS service on server WPCEDDU01.ent.ad.ntrs.com has stopped running#>
+
+                $string= "{{ Description }}"
+                if($string.Contains("Windows Server"))
+
+                {
+                $string_array=@($string -split ' ')
+                $string_array[2]
+                }
+                elseif($string.Contains("DHCP")){
+                $string_array=@($string -split ' ')
+                $string1=$string_array[1]
+                $string1=$string_array[1]+' '+'Client'
+                write-Host $string1
+                }
+                elseif($string.Contains("DNS")){
+                $string_array=@($string -split ' ')
+                $string1=$string_array[1]
+                $string1+' '+'Client'
+                }
+                else
+                {
+                echo "Not exist"
+                }
+                
+    delegate_to: "wpcmxsp05.ENT.AD.NTRS.COM" 
+    register: string_result
+    ignore_errors: true
+  - debug: 
+      msg: "{{string_result}}"
+  - set_fact:
+      string_result_output: "{{ string_result.stdout_lines[0] }}"
+ 

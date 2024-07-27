@@ -1,0 +1,147 @@
+
+##########################################################################
+# Description: This playbook will be triggered to process the individual # 
+#              tickets with the complete workflow.                       #
+##########################################################################
+
+- name: Extracting required inputs from the ticket.
+  block:
+    - name: Pull the incident number
+      set_fact:
+        ticketNo: "{{ticket.number}}"
+    - include_role:
+        name: servicenow_inc
+        tasks_from: progress
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Automation has started working on the ticket. Automation process id- {{awx_job_id}}"
+    - name: pull the required inputs from the ticket
+      set_fact:
+        server: "{{ ticket.cmdb_ci.display_value }}"
+         
+    - name: update the ticket if the inputs are not being pulled properly
+      include_role:
+        name: servicenow_inc
+        tasks_from: failure_worknotes
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Error occured: Automation is unable to process the ticket, seems like required input parameters server name is either blank or not in the proper format. "
+      when: (server is not defined) or (server == "")
+  rescue:
+    - include_role:
+        name: servicenow_inc
+        tasks_from: failure_worknotes
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Error occured: Automation is unable to process the ticket, seems like required input parameters (cluster/vserver/volume) is eighter blank or not in the proper format."
+
+- name: print the inc number
+  debug:
+    msg: "Processing -> {{ticketNo}}"
+
+- name: Checking server connectivity 
+  block:
+    - wait_for_connection:
+        timeout: 10
+      register: conncheck
+      delegate_to: "{{ server }}.ENT.AD.NTRS.COM"  
+  rescue:
+    - include_role:
+        name: servicenow_inc
+        tasks_from: failure_worknotes
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Automation tried to reach the server but {{server}} is not reachable. Please handle it manually"
+    
+- name: start processing the ticket and call the playbook to execute the wintel commands.
+  when: ((server is defined) or (server != "")) and (conncheck is succeeded)
+  block:
+  
+    - import_tasks: cpu_utilization.yml
+      delegate_to: "{{ server }}.ENT.AD.NTRS.COM"
+
+    - name: posting the top 3 processes at 30 seconds interval 3 times
+      when: ((process_type_output is defined) or (process_type_output != ""))
+      include_role:
+        name: servicenow_inc
+        tasks_from: work_notes_only
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "{{ process_type_output }}"
+    - name: check process_result_output is defined
+      when: ((process_type_output is defined) or (process_type_output != ""))
+      block:
+        - name: comments added for manual checking
+          when:  "'Sql' in process_type_output"
+          include_role:
+            name: servicenow_inc
+            tasks_from: transfer
+          vars:
+            inc_no: "{{ticketNo}}"
+            L2_group: "GDP OPS MSSQL"
+            transfer_msg: "Transferring the ticket to GDP OPS MSSQL queue since SQL Process is consuming highest memory currently, engineer can have a look and proceed further."               
+
+        - name :  close Ticket
+          when: "'Non-Critical' in process_type_output"
+          include_role: 
+            name: servicenow_inc
+            tasks_from: success
+          vars:
+            inc_no: "{{ticketNo}}"
+            resolve_message : "Closing the ticket as process is non-critical and has been restarted."
+            success_closing_note: "success"
+    
+    - name: update assigned to field as empty
+      include_role:
+        name: servicenow_inc
+        tasks_from: user_assignment
+      vars:
+        inc_no: "{{ticketNo}}"
+        user_assigned_to: ""
+      when: process_type_output != "Non-Critical"
+
+    - name: Final worknotes on the ticket
+      include_role:
+        name: servicenow_inc
+        tasks_from: work_notes_only
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Automation has added the below comments, engineer can have a look and proceed further."
+      when: process_type_output != "Non-Critical"
+ 
+
+    - name: Update the output when playbook is unable to find top proccesses.
+      include_role:
+        name: servicenow_inc
+        tasks_from: work_notes_only
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "{{result_msg_temp}}"
+      when: result_msg_temp is defined and result_msg_temp != "" 
+    
+    - name: Adding ticket as successfully executed list
+      set_fact:
+        success_tickets: "{{success_tickets + [ticketNo]}}"
+
+  rescue:
+    - name: To capture the errors in the playbook.
+      include_role:
+        name: servicenow_inc
+        tasks_from: failure_worknotes
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Error occured: Automation is unable to process the ticket, hence routing it for manual intervention."
+    - name: Trigger email on failure
+      include_role:
+        name: mail_notification
+        tasks_from: failure_mail
+      vars:
+        ticket_id: "{{ticketNo}}"
+
+- name: clearning the inputs of the ticket at the end
+  set_fact:
+    ticketNo: ""
+    server: ""
+    process_result_output: ""
+    process_type_output: ""
+    response_msg_temp: ""

@@ -1,0 +1,19 @@
+- name: Execute ps script
+  block:
+  - name: Checking if ID is enable or disable 
+    win_shell: 
+        |   
+        $RequesterName = "{{LANID}}"
+        $user_details= Get-ADUser $RequesterName
+        if($user_details.Enabled -eq 'True')
+        {
+            Write-Host "user not disabled in AD Group "
+        }
+        else{
+            Write-Host "user is disabled in AD group "
+        }
+    delegate_to: "{{ Windows_host }}"    
+    register: Sendout
+- name: User output
+  set_fact:
+    User_output: "{{Sendout.stdout}}"

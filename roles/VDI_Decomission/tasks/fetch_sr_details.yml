@@ -1,0 +1,36 @@
+---
+######################################################################
+#               !!! fetch_sr_details.yml !!!                         #
+#                                                                    #
+# Function:                                                          #
+#   - Search for SCTASKs assigned to group,return specific fields    #
+#                                                                    #
+#                                                                    #
+######################################################################
+
+#
+# Search for tickets assigned to group, return specific fields
+- name: Search for SR assigned to group, return specific fields
+  servicenow.servicenow.snow_record_find:
+    username: "{{ snow_user }}"
+    password: "{{ snow_passwd }}"
+    instance: "{{ snow_instance }}"
+    display_value: true
+    table: sc_task
+    query: "{{snow_query}}"
+    
+    return_fields:
+      - number
+      - parent
+      - sys_id 
+      - u_details 
+      - request_item
+      - sys_created_on    
+  register: ticket
+   
+- set_fact:
+    tickets: "{{ ticket.record }}" 
+- debug:
+   msg:  "{{tickets}}"
+
+
