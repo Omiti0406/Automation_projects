@@ -1,0 +1,27 @@
+- name: calling of MS SQL custom module 
+  block:
+   - mssql_block_module:
+       username: '{{ sql_username }}'
+       password: '{{ sql_password }}'
+       server: "{{ server }}"
+       to: "{{ to_address }}"
+       ticket: "{{ ticketNo }}"
+     register: block_output
+   - name: debug custom module
+     debug:
+       msg: "Output -> {{ block_output }}" 
+  
+   - name: Set fact of custom module output when successful
+     set_fact:
+       msblock_output: "{{ block_output.output }}"   
+     when: block_output.output is defined and block_output.output != ''
+  
+   - name: Set fact of custom module output when failed
+     set_fact:
+       msblock_output: "{{ block_output.err }}"   
+     when: block_output.err is defined and block_output.err != ''
+
+  rescue:
+  - debug:
+      var: "Automation failed -{{ block_output.msg }}"
+    when: block_output.msg is defined

@@ -1,0 +1,39 @@
+---
+######################################################################
+#               !!! fetch_sr_details.yml !!!                         #
+#                                                                    #
+# Function:                                                          #
+#   - Search for SCTASKs assigned to group,return specific fields    #
+#   - Call to call_to_execute_plyb.yml playbook to run recommended   #
+#     command                                                        #
+#                                                                    #
+######################################################################
+
+#
+# Search for incident assigned to group, return specific fields
+#
+
+- name: Search for SR assigned to group, return specific fields
+  servicenow.servicenow.snow_record_find:
+    username: "{{ snow_user }}"
+    password: "{{ snow_passwd }}"
+    instance: "{{ snow_instance }}"
+    display_value: true
+    table: sc_task
+    query:
+      AND:
+        equals:
+          active: "True"
+          state: "1"
+          assignment_group: "{{ assignment_group }}"
+        contains: 
+          short_description: "{{ short_decs }}"
+          request_item.cat_item.name: "{{catalogName}}"
+    return_fields:
+      - number
+      - parent      
+  register: ticket
+   
+- set_fact:
+    tickets: "{{ ticket.record }}"
+

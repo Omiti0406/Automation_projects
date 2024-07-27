@@ -1,0 +1,37 @@
+- name: Executing Powershell to send email of no blocking
+  block:
+  - win_shell: 
+              |
+                [String]$SMTPServer = "appmail.ntrs.com"
+                [String]$SMTPPort= "25"
+                [String]$FromAddress = "NoReply@ntrs.com"
+                [String]$ToAddress = "GDP_OPS_MSSQL@ntrs.com"
+                [String]$CCAddress = "{{ to_address }}"
+                
+                Function Send_EMail ($SMTPServer, $SMTPPort, $FromAddress, $ToAddress, $CCAddress)
+                {
+                Try 
+                {
+                    #E-Mail Details
+                    [String]$Subject = "{{ticketNo}} - Blocked session on {{ server }}"
+                    [String]$body = "Hi Team,
+                     Blockings has auto-cleared on the subjected server $($ServerName). Hence please check and let us know in case of any action needed from our end. 
+                    Thanks"; 
+                	
+                    Send-MailMessage -SmtpServer $SMTPServer -Port $SMTPPort -From $FromAddress -To $ToAddress -Cc $CCAddress -Subject $Subject -Body $body;
+                
+                }
+                Catch [System.exception]
+                {
+                    Write-Error "Send Mail Error:- $_.Exception.Message ";
+                }
+                }
+                
+                Send_EMail -SMTPServer $SMTPServer -SMTPPort $SMTPPort -FromAddress $FromAddress -ToAddress $ToAddress -Cc $CCAddress;
+                                
+    register: to_address_op
+
+  rescue:
+  - debug:
+      msg: "Automation failed -{{ to_address_op.msg }}"
+    when: to_address_op.msg is defined

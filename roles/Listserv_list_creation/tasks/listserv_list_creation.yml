@@ -1,0 +1,12 @@
+#######################################################
+#                   !Description!
+#        Trigger the email with deletion commands
+#######################################################
+- import_tasks: trigger_mail.yml 
+  vars:
+    command: "hold {{list_name}} pw= {{ansible_password}}"
+- import_tasks: trigger_mail.yml  
+  vars:
+    command: "PUTALL {{list_name}} LIST PW= {{ansible_password}}"
+- set_fact:
+    cmd_exec_status: 1

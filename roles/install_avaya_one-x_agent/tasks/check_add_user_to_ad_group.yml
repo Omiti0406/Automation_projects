@@ -1,0 +1,25 @@
+---
+- name: Connect to windows AD server and check AD user
+  block:
+    - name: Check and Add AD user to AD Group
+      win_domain_group_membership:
+        name: "{{ad_grp_item}}"
+        members:
+          - "{{ LANID }}"
+        state: present
+      delegate_to: "{{ AD_host }}"
+      register: Add_output
+
+    - debug:
+        msg: "{{Add_output}}"
+    - set_fact:
+        ad_resolved_message: "User name {{LANID}} is already present in the AD group {{ad_grp_item}}\nPartner can install the application from software center.\n"
+      when: Add_output is success and Add_output.added == [] and LANID in Add_output.members
+    
+    - set_fact:
+        ad_resolved_message: "User name '{{LANID}}' is successfully added into the AD group {{ad_grp_item}}\nPartner can install the application from software center.\n"
+      when: Add_output is success and Add_output.added != [] and LANID in Add_output.added
+
+  rescue:
+    - set_fact:
+        error_message: "Error Occured:\n {% if Add_output.msg is defined %}{{Add_output.msg}}{% elif Add_output.stderr is defined %}{{Add_output.stderr}}{% else %}Unknown error.{% endif %}\n\nManual intervention is required."

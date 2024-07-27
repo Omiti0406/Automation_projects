@@ -1,0 +1,98 @@
+---
+############################################################################################
+#                           DESCRIPTION
+#         This role will fetch the host details and based on whether the host exists,
+#          delete the host record from Infoblox and update the status based on success or failure.
+############################################################################################
+- set_fact:
+    response: default
+- block:
+       - name: fetch all host records
+         hostdelete:
+           hostRecord: "{{hostRecord}}"
+           username: "{{ansible_user}}"
+           password: "{{ansible_password}}"
+           host: "{{infoblox_host}}"
+         register: host_output
+         
+       - set_fact:
+           err_output: "{{hostRecord}}-Host record is not found.Incorrect hostname passed or host record is already deleted."
+           response: failure  
+         when: host_output.host_record == []
+           
+  rescue:
+        - set_fact:
+            err_output: "{{hostRecord}}-Error fetching host details."
+            response: failure         
+         
+- block:
+     - name: Remove a host record from the system
+       infoblox.nios_modules.nios_host_record:
+         name: "{{hostRecord}}"
+         state: absent
+         provider:
+           host: "{{infoblox_host}}"
+           username: "{{ansible_user}}"
+           password: "{{ansible_password}}"
+           wapi_version: "2.0"
+         view: "Internal"
+      # check_mode: true
+
+     - set_fact:
+         success_output: "{{hostRecord}}-Host record deleted successfully"
+         response: success
+  when: 
+    - host_output.host_record != []
+
+  rescue:
+    - set_fact:
+        err_output: "{{hostRecord}}-Error removing host record.Please handle manually"
+        response: failure
+        
+- block:
+    - name: post check host records
+      hostdelete:
+           hostRecord: "{{hostRecord}}"
+           username: "{{ansible_user}}"
+           password: "{{ansible_password}}"
+           host: "{{infoblox_host}}"
+      register: post_output
+      
+    - set_fact:
+        post_hostrecord: "{{post_output.host_record}}"
+      no_log: true
+  
+    - set_fact:
+        postcheck: "Post check status-Host record deleted"
+      when: 
+        - post_hostrecord == [] 
+  
+    - set_fact:
+        postcheck: "Post check status:Host record not deleted.Check manually"
+      when: 
+        - post_hostrecord != []
+  when: response == "success"
+        
+  rescue:
+    - set_fact:
+        err_output: "{{hostRecord}}:Error with post check.Check manually"
+        
+- set_fact:
+    finalop: "{{success_output}}.{{postcheck}}"
+  when: success_output is defined
+  
+- set_fact:
+        failure_list: "{{(failure_list + [err_output]) | unique}}"
+  when: err_output is defined
+  
+- set_fact:
+        success_list: "{{(success_list + [finalop]) | unique}}"
+  when: success_output is defined 
+
+- set_fact:
+       t_success_list: "{{ finalop | split('-') }}"
+  when: success_output is defined 
+
+- set_fact:
+       toil_success_list: "{{ toil_success_list + [t_success_list[0]] | unique}}"
+  when: t_success_list is defined

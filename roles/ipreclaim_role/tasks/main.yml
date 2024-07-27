@@ -1,0 +1,103 @@
+---
+# tasks file for ipreclaim_role
+######################################################
+#                       DESCRIPTION
+#         This role will fetch the ip details and based on whether it is used ip and no more than 1 record is found ,reclaim ip address from Infoblox and 
+#         update the status based on success or failure.
+#         If more than 1 record is found ,It will not reclaim the ip.
+######################################################
+- block:
+    - name: Get the ip details and reclaim it
+      ip_reclaim:
+        ipaddress: "{{ipaddress}}"
+        username: "{{user}}"
+        password: "{{password}}"
+        host: "{{infoblox_host}}"
+      register: ip_output
+      no_log: true
+             
+    - set_fact:
+       names: "{{ip_output.ip_record[0].names}}"
+       object_list: "{{ip_output.ip_record[0].objects}}" 
+       postcheck: ""
+       success_output: ""   
+       
+    - set_fact:
+        success_output: "{{ip_output.output}}"
+        response: success
+      when: ip_output.output is search('Successfully')
+      
+    - set_fact:
+        notify_output: "{{ip_output.output}}"
+      when: ip_output.output is search('more than')
+      
+    - name: Post check Get the ip details
+      ip_fetchdetails:
+            ipaddress: "{{ipaddress}}"
+            username: "{{user}}"
+            password: "{{password}}"
+            host: "{{infoblox_host}}"
+      register: post_output
+      no_log: true
+      
+    - set_fact:
+        post_object_list: "{{post_output.ip_record[0].objects}}"
+      no_log: true
+  
+    - set_fact:
+        postcheck: "Post check status:Ip reclaimed"
+      when: 
+        - post_object_list == []
+        - response == "success"
+        - success_output != ""       
+  
+    - set_fact:
+        postcheck: "Post check status:Ip not reclaimed.Check manually"
+      when: 
+        - post_object_list != []
+        - response == "success"
+        - success_output != ""
+          
+  rescue:
+    - set_fact:
+        err_output: "{{item}}-Error reclaiming ip.please check manually"
+        response: failure
+  
+    - set_fact:
+        err_output: "{{item}}-Error reclaiming ip.Please check the input ip address"
+        response: failure
+      when: ip_output.msg is search('Client Error')
+      
+    - set_fact:
+        err_output: "{{item}}-Error reclaiming ip.{{ip_output.msg}}"
+        response: failure
+      when: ip_output.msg is search('UNUSED')
+  
+- set_fact:
+    finalop: "{{success_output}}{{postcheck}}"
+  when: success_output is defined
+        
+- set_fact:
+    success_list: "{{(success_list + [finalop])| unique}}"
+  when: success_output is defined 
+  run_once: true
+    
+- set_fact:
+    failure_list: "{{(failure_list + [err_output])|unique}}"
+  when: err_output is defined
+  run_once: true
+  
+- set_fact:
+        notify_list: "{{(notify_list + [notify_output]) | unique}}"
+  when: notify_output is defined 
+  run_once: true
+
+- set_fact:
+       t_success_list: "{{ finalop | split('-') }}"
+  when: success_output is defined 
+
+- set_fact:
+       toil_success_list: "{{ toil_success_list + [t_success_list[0]] | unique}}"
+  when: t_success_list is defined
+  run_once: true
+

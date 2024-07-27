@@ -1,0 +1,40 @@
+- name: Fetch the variables fileds from the request ticket
+  uri:
+    url: "https://{{snow_instance}}.service-now.com/api/now/table/sc_item_option?sysparm_query=sys_idSTARTSWITH{{dependent_item}}&sysparm_fields=item_option_new%2Cvalue&sysparm_limit=1"
+    method: GET
+    validate_certs: no
+    return_content: yes
+    user: "{{snow_user}}"
+    password: "{{snow_passwd}}"
+    force_basic_auth: yes
+    status_code: 200
+  register: response_answers
+
+- set_fact: 
+    response_value: "{{response_answers.json.result[0].value}}"
+    response_key: "{{response_answers.json.result[0].item_option_new.value}}"
+
+
+- name: fetch question
+  uri:
+    url: "https://{{snow_instance}}.service-now.com/api/now/table/item_option_new?sysparm_query=sys_id%3D{{response_key}}&sysparm_limit=1"
+    method: GET
+    validate_certs: no
+    return_content: yes
+    user: "{{snow_user}}"
+    password: "{{snow_passwd}}"
+    force_basic_auth: yes
+    status_code: 200
+  register: final_response 
+
+- set_fact:
+    list_name_que: "{{final_response.json.result[0].sys_name}}"
+    list_name_val: "{{response_value.split(',')}}"
+  when: final_response.json.result[0].sys_name == "What is the list name?"
+- set_fact:
+    action_to_take: "{{final_response.json.result[0].sys_name}}"
+    action_to_take_val: "{{response_value}}"
+  when: final_response.json.result[0].sys_name == "What action do you want to take?"
+  
+    
+    

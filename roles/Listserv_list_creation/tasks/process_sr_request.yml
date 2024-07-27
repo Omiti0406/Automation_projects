@@ -1,0 +1,129 @@
+
+---
+###########################################################################
+#                          !!Description!! 
+# This playbook will be called to process the individual SR tickets...
+###########################################################################
+- set_fact:
+    sctaskNo: "{{sctask.number}}"
+    ritmNo:  "{{sctask.parent.display_value}}"
+
+- debug:
+    msg: "{{sctaskNo}}  -->  {{ritmNo}}"
+
+- name: Fetch ticket variables
+  block:
+  - uri:
+      url: "https://{{snow_instance}}.service-now.com/api/now/table/sc_item_option_mtom?sysparm_query=request_item.numberSTARTSWITH{{ritmNo}}&sysparm_fields=sc_item_option%2Crequest_item"
+      method: GET
+      validate_certs: no
+      return_content: yes
+      user: "{{snow_user}}"
+      password: "{{snow_passwd}}"
+      force_basic_auth: yes
+      status_code: 200
+    register: dependent_items
+    
+  - name: To set the dependent items from the requet ticket
+    set_fact:
+      DependentItem_value: "{{DependentItem_value | default([])+ [item.sc_item_option.value]}}"
+    with_items: "{{dependent_items.json.result}}"
+  
+  - name: To fetch the variables fields of request ticket
+    include_tasks: fetch_sr_variable_fields.yml 
+    vars:
+      dependent_item: "{{item}}"
+    with_items: "{{DependentItem_value}}"
+
+  - debug:
+      msg:
+        - "{{action_to_take}}: {{action_to_take_val}}"
+        - "{{list_name_que}}: {{list_name_val}}"
+        - "{{list_desc_que}}: {{list_desc_val}}"
+  - set_fact: 
+      list_name : "{{list_name_val[0]}}"
+
+  #Put a worknotes on the ticket when required inputs are missing
+  - include_role:
+      name: servicenow_sctask
+      tasks_from: progress
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "Error occured: Automation is unable to find the required input details from the the ticket.\n Action to take : ' {{action_to_take_val}} '\n List Name: ' {{list_name_val}}'"
+    when: (action_to_take_val is not defined) or (action_to_take_val == "") or (list_name_val is not defined) or (list_name_val == "")
+
+  rescue:
+  - include_role:
+      name: servicenow_sctask
+      tasks_from: progress
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "Error occured: Automation is unable to find the required input details(list name/action to take) from the the ticket."
+  - name: Trigger failure mail in case of any error
+    include_role:
+      name: mail_notification
+      tasks_from:  failure_mail.yml
+    vars:
+      ticket_id: "{{sctaskNo}}"
+      job_name: "{{usecase_job_name}}"
+
+- name: update the ticket and trigger the listserv command through mail
+  block:
+  - include_role:
+      name: servicenow_sctask
+      tasks_from: progress
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "Automation has started working on the ticket. \nAutomatoin process id: {{awx_job_id }}"
+    
+  - name: task to find app owners DL
+    import_tasks: folder_creation.yml
+    delegate_to: "wpcholu01.ENT.AD.NTRS.COM"  
+
+  - name: task to find app owners DL
+    import_tasks: list_creation_send_email.yml
+    
+  - include_role:
+      name: servicenow_sctask
+      tasks_from: work_notes_only
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "{{ create_result_output}}"
+
+  - include_role:
+      name: servicenow_sctask
+      tasks_from: work_notes_only
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "{{ list_output}}"
+
+  - include_role:
+      name: servicenow_sctask
+      tasks_from: work_notes_only
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "Automation has added the below comments, engineer will check and take further actions." 
+  when: action_to_take_val is defined and action_to_take_val == "Create a list" and list_name is defined and list_name != ""
+  rescue:
+  - name: Trigger a failure email in case of any error
+    include_role:
+      name: mail_notification
+      tasks_from:  failure_mail.yml
+    vars:
+      ticket_id: "{{sctaskNo}}"
+      job_name: "{{usecase_job_name}}"
+  - include_role:
+      name: servicenow_sctask
+      tasks_from: progress
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "Automation is unable to complete the request, hence routing it for manual intervention."
+      
+- set_fact:
+    sctaskNo: ""
+    ritmNo:  ""
+    action_to_take_val: ""
+    list_name_val: ""
+    cmd_exec_status: ""
+    create_result_output: ""
+ 

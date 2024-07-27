@@ -1,0 +1,20 @@
+- name: Send mail to the network team with the final message
+  mail:
+    host: "{{mail_server}}"
+    port: "{{mail_port}}"
+    subject: "{{ticket_id}} - Automation Failed"
+    from: "{{from_email}}"
+    to: "{{holmes_team_dl}}"
+    # cc: ""
+    body: |
+               *******************AUTOMATED MAIL - PLEASE DO NOT REPLY**********************
+               
+                 Hi Team,
+
+                 Automation Failed to process the ticket.
+                 Ticket No : {{ticket_id}}
+                 Automation process ID : {{awx_job_id}}
+                 Job Name: {{awx_job_template_name}}
+
+                 Regards,
+                 Automation Team

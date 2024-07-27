@@ -1,0 +1,9 @@
+- name: trigger the mail to the listserv mail box with the list deletion commands
+  mail:
+    host: "{{mail_server}}"
+    port: "{{mail_port}}"
+    subject: "{{sctaskNo}} Listserv list deletion"
+    from: "{{from_email}}"
+    to: "{{to_email}}" 
+    body: "{{command}}"
+  no_log: True

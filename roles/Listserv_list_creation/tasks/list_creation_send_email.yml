@@ -1,0 +1,19 @@
+- name: block to  process details
+  block:
+  - name: executecustom modele of ListServ
+    list_creation_module:
+      staskNo: "{{ sctaskNo }}"  
+      description: "{{ list_desc_val }}"
+    ignore_errors: true
+    register: list_serv_creation
+  - name: debug output 1
+    debug:
+      msg: "{{ list_serv_creation }}"
+
+  - set_fact:
+      list_output: "{{ list_serv_creation.result }}"
+    when: list_serv_creation is succeeded
+  - name: list output for failure
+    set_fact:
+      list_output: "{{ list_serv_creation.msg }}"
+    when: list_serv_creation is failed

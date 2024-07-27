@@ -1,0 +1,116 @@
+---
+##########################################################################
+# Description: This playbook will be triggered to process the individual # 
+#              tickets with the complete workflow.                       #
+##########################################################################
+
+- name: Extracting required inputs from the ticket.
+  block:
+    - name: extract ticket number and configuration item from the ticket
+      set_fact:
+        ticketNo: "{{ticket.number}}"
+        target_host: "{{ticket.cmdb_ci.display_value}}"    
+    - name:  put ticket in progess
+      include_role:
+        name: servicenow_inc
+        tasks_from: progress
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Automation has started working on the ticket. Automation process id- {{awx_job_id}}"
+
+    # To check verify the fetched inputs and update the ticket incase of insufficient data.
+    - name: Update insufficient data error on the ticket
+      include_role:
+        name: servicenow_inc
+        tasks_from: failure_worknotes
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Error occured: Insufficient input data, automation is unable to process the incident. \n target_host: {{target_host}}"
+      when: (target_host is not defined) or (target_host == "") 
+  rescue:
+    - name: Update unable to read inputs from the ticket error on the ticket
+      include_role:
+        name: servicenow_inc
+        tasks_from: failure_worknotes
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Error occured: Automation is unable to process the ticket, seems like unable to find the effected CI hostname."
+
+    
+- name: incident details
+  debug:
+    msg: "Processing -> {{ticketNo}}"
+- name: check ping result
+  block:
+     - name: execute ping command 
+       shell: ping -c 4 {{target_host}} -W 5  
+       register: ping_result
+       delegate_to: localhost
+
+     
+     - name: perform tasks if ping successful
+       debug: 
+         msg: 
+           - "server is pingable. Proceed with next task."
+           - "{{ping_result}}"
+       when: ping_result is success
+
+  rescue: 
+      - name: perform tasks if ping failed
+        debug: 
+          msg: "unable to ping server."
+
+- name: start processing the ticket and call the playbook to execute the storage commands.
+  block:  
+    - name: Calling playbook to execute the commands
+      import_tasks: nw_memory_utilization.yml
+      # Update the output of the executed commands on the ticket.
+    - name: Update the commands output to the ticket worknotes.
+      include_role:
+        name: servicenow_inc
+        tasks_from: work_notes_only
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "memory utilization command output: \n{{memory_details}}"
+      when: memory_details is defined and memory_details != ""
+      
+      #Final worknotes on the ticket
+    - name: Update the exit worknotes to the ticket
+      include_role:
+        name: servicenow_inc
+        tasks_from: work_notes_only
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Automation has added the below comments, engineer can have a look and proceed further."
+    - name: set assign to field as empty
+      include_role:
+        name: servicenow_inc
+        tasks_from: user_assignment
+      vars:
+        inc_no: "{{ticketNo}}"
+        user_assigned_to: "" 
+    - name: Adding ticket as successfully executed list for metering
+      set_fact:
+        success_tickets: "{{success_tickets + [ticketNo]}}"
+  when: (target_host is defined) and (target_host != "") 
+ 
+  # To capture the errors in the playbook.
+  rescue:
+    - name: Update the errors to the ticket in case of unexpected error
+      include_role:
+        name: servicenow_inc
+        tasks_from: failure_worknotes
+      vars:
+        inc_no: "{{ticketNo}}"
+        worknotes_msg: "Error occured: Automation is unable to process the ticket, hence routing it for manual intervention."
+    - name: Trigger email on failure
+      include_role:
+        name: mail_notification
+        tasks_from: failure_mail
+      vars:
+        ticket_id: "{{ticketNo}}"
+- name: set the variables vaules to null
+  set_fact:
+    ticketNo: ""
+    target_host: ""
+    memory_details: ""

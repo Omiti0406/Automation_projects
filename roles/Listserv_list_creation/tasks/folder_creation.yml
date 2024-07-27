@@ -1,0 +1,71 @@
+- name: "ListServ_New_List_Creation"
+  block:
+    - name: ListServ_New_List_Creation
+      win_shell: |
+                  Remove-Variable -Name * -ErrorAction SilentlyContinue -Force
+
+
+                  $username  = '{{ ansible_user }}'
+                  $pass = '{{ ansible_password }}'
+      
+                  $password = ConvertTo-SecureString $pass -AsPlainText -Force
+                  $Cred = New-Object System.Management.Automation.PSCredential ($username , $password)
+
+                  try
+                  {
+
+                  $Drive = "\\wpcmxsp05\e$\APPS\ListServ\WWW\ARCHIVES"
+                  New-psdrive -Name ListServerDrive -Root $Drive -PSProvider FileSystem -ErrorAction stop -Credential $cred|Out-Null
+
+
+                  $folderName = "{{ list_name }}"
+                      
+
+                  if(Test-Path -Path "ListServerDrive:\$folderName")
+                          {
+                              Write-Output "`nSuccess $folderName folder already present under $Drive"
+                          }
+                          else
+                          {
+                              Write-Output "`nCreating $folderName Folder under $Drive"
+                              New-Item -Path "ListServerDrive:\$folderName" -ItemType Directory | Out-Null
+                              
+                              if(Test-Path -Path "ListServerDrive:\$folderName")
+                              {
+                                  Write-Output "Success $folderName Folder created successfully under $Drive"
+                              }
+                              else
+                              {
+                                  Write-Output "Failure Unable to create Folder $folderName under $Drive"
+                              }
+                          }
+                    
+
+                  }
+                  catch
+                  {
+                      $_
+                  }
+                  finally {
+                      Remove-PSDrive ListServerDrive -ErrorAction SilentlyContinue
+                      Write-Output "Drive has been removed successfully"
+                  }
+      delegate_to: "wpcmxsp05.ENT.AD.NTRS.COM"                              
+      register: create_result
+      ignore_errors: yes
+      failed_when: create_result != 0 and create_result.rc != 1
+    - debug: 
+        msg: "{{create_result.stdout_lines}}"
+      when: create_result.stdout_lines is defined
+    - debug: 
+        msg: "Automation failed - {{ create_result.stderr }}"
+      when: create_result.stderr != ""
+    - name: Setting the value of type of process
+      set_fact:
+        create_result_output: "{{ create_result.stdout }}"
+        
+  rescue:
+    - set_fact:
+       create_result: "An error occurred while running the script. {{ create_result.msg }}"
+      when: create_result.msg is defined
+      

@@ -1,0 +1,20 @@
+- name: Send mail to the Application team for cleanup on Quota disk space
+  mail:
+    host: "appmail.ntrs.com"
+    port: "25"
+    subject: "{{email_subject}}"
+    body: |
+               *******************AUTOMATED MAIL**********************
+               
+                Hi Team,
+
+                Ticket No : {{ticket_id}}
+                Automation process ID : {{awx_job_id}}
+                 
+                {{email_body}}
+
+                Regards,
+                Automation Team
+    from: "noreply@ntrs.com"
+    to: "{{To_Address}}"
+    cc: "Storage_Operations@ntrs.com"

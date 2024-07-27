@@ -1,0 +1,131 @@
+---
+###########################################################################
+#                          !!Description!! 
+# This playbook will be called to process the individual SR tickets.
+###########################################################################
+- name: fetching inputs from the ticket
+  block:
+  - set_fact:
+      sctaskNo: "{{sctask.number}}"
+      sctask_ritm: "{{sctask.request_item.display_value}}"
+
+  - name: reading LANID from short_description or RITM "requested_for" field.
+    set_fact:
+      LANID: "{{sctask.short_description | regex_findall('\\(.*?\\)') | join() | regex_replace('\\(', '') |regex_replace('\\)', '')}}"
+  
+  - debug:
+       msg: 
+         - "LANID is {{LANID}}" 
+         - "SC task RITM is {{sctask_ritm}}"
+    when: sctask_ritm is defined and LANID is defined
+
+  - name: block to fetch RITM req_for value
+    block:
+      - name: find LANID from requested for field
+        servicenow.servicenow.snow_record_find:
+          username: "{{ snow_user }}"
+          password: "{{ snow_passwd }}"
+          instance: "{{ snow_instance }}"
+          display_value: true
+          table: sc_req_item
+          query: "active=true^number={{sctask_ritm}}"
+          return_fields:
+            - number
+            - requested_for   
+        register: Req_for
+      - debug:
+          msg: "{{Req_for.record}}"
+
+      - set_fact:
+          LANID: "{{req_for_item.requested_for.display_value | regex_findall('\\(.*?\\)') | join() | regex_replace('\\(', '') |regex_replace('\\)', '')}}"
+        with_items: "{{Req_for.record}}"
+        loop_control:
+           loop_var: req_for_item 
+    when: LANID == "for call center agents" or LANID == ""
+
+  - debug:
+      msg: "Req_for LANID is {{LANID}}"
+    when: LANID is defined
+ 
+  - name: Put a worknotes on the ticket incase of insufficient data
+    include_role:
+      name: servicenow_sctask
+      tasks_from: failure_worknotes
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "Error occured: Insufficient input data, automation is unable to complete the request.\n LAN ID: '{{LANID}}'"
+    when: (LANID is not defined) and (LANID == "")
+
+  rescue:
+  - include_role:
+      name: servicenow_sctask
+      tasks_from: failure_worknotes
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "Error occured: Automation is unable to find the required input details LoginID from the the ticket."
+ 
+- name: Check the AD server connectivity.
+  block:
+  - wait_for:
+      host: "{{AD_host}}"
+      port: "{{ad_srv_port}}"
+      timeout: "{{ad_srv_timeout}}"
+    register: connCheck
+
+  rescue:
+  - include_role:
+      name: servicenow_sctask
+      tasks_from: failure_worknotes
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "Automation failed to complete the request, AD server is not reachable."
+
+- name: Adding user to Avaya AD group   
+  when: connCheck is defined and connCheck is succeeded and LANID is defined and LANID != ""
+  block:
+  - include_role: 
+      name: install_avaya_one-x_agent
+      tasks_from: check_add_user_to_ad_group   
+
+  - name: Closing the ticket
+    include_role:
+      name: servicenow_sctask
+      tasks_from: success
+    vars:
+      sr_number: "{{sctaskNo}}"
+      resolve_message: "{{ad_resolved_message | regex_replace(',', ',\n')}}.\nClosing the task."
+    when: ad_resolved_message is defined and ad_resolved_message != []    
+
+  - name: In case of any failure, adding a worknotes on the ticket and leaving the ticket for manual intervention.
+    include_role:
+      name: servicenow_sctask
+      tasks_from: failure_worknotes
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "{{error_message}}"
+    when: error_message is defined          
+  
+  - name: Add ticket to the metering matrix
+    set_fact:
+      success_tickets: "{{success_tickets + [sctaskNo]}}"
+
+  rescue:
+  - include_role:
+      name: servicenow_sctask
+      tasks_from: failure_worknotes
+    vars:
+      sr_number: "{{sctaskNo}}"
+      worknotes_msg: "Automation failed to complete the request." 
+
+    
+
+- set_fact:
+    LANID: ""
+    ADGroup: ""
+    sctaskNo: ""
+    sctask_ritm: ""
+    Req_for: ""
+    connCheck: ""
+    Add_output: ""
+    error_message: "" 
+    ad_resolved_message: ""
