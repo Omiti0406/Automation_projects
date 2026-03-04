@@ -5,7 +5,6 @@
 #                       and call the process_inc.yml playbook to process indivdual 
 #                       tickets.
 # Version: v1.0
-# Developer: Nikhil Veer (nikhil.veer1@wipro.com)
 ###################################################################################
 - hosts: localhost
   gather_facts: no

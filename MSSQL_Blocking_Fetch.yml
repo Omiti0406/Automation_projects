@@ -5,7 +5,6 @@
 #                       and call the second AWX template to process indivdual 
 #                       tickets.
 # Version: v1.0
-# Developer: Pratiti Srivastava (pratiit.srivastava@wipro.com)
 ###################################################################################
 
 
@@ -33,8 +32,8 @@
 
     - name: calling another template
       uri:
-       #url: "https://awx-uat.wrkld-awx-1-uat-2.k8s.ntrs.com/api/v2/job_templates/{{template_id}}/launch/"
-       url: "https://awx.wrkld-awx-1-prod.k8s.ntrs.com/api/v2/job_templates/{{template_id}}/launch/"
+       #url: "https://awx-uat.organization.com/api/v2/job_templates/{{template_id}}/launch/"
+       url: "https://awx.organization.com/api/v2/job_templates/{{template_id}}/launch/"
        method: POST
        validate_certs: no
        return_content: yes

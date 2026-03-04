@@ -5,7 +5,6 @@
 #                       for Storage_configadvisor_solution, it'll process the INCs 
 #                       and perform the defined automation executions.
 # Version: v1.0
-# Developer: Himanshu Sadanand Bhosale(himanshu.bhosale@wipro.com)
 ###################################################################################
 - hosts: localhost
   gather_facts: no

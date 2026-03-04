@@ -1,6 +1,6 @@
 - name: Send mail to the Application team for cleanup on Quota disk space
   mail:
-    host: "appmail.ntrs.com"
+    host: "mail.organization.com"
     port: "25"
     subject: "{{email_subject}}"
     body: |
@@ -15,6 +15,6 @@
 
                 Regards,
                 Automation Team
-    from: "noreply@ntrs.com"
+    from: "noreply@organization.com"
     to: "{{To_Address}}"
-    cc: "Storage_Operations@ntrs.com"
+    cc: "Storage_Operations@organization.com"

@@ -6,7 +6,6 @@
 #                       and call the process_inc.yml playbook to process indivdual 
 #                       tickets.
 # 
-# Developer: Anas khan(ak800@ntrs.com)
 ###################################################################################
 - hosts: localhost
   gather_facts: no

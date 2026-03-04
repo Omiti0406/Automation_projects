@@ -57,12 +57,12 @@
 - name: wintel username
   set_fact:
     sql_username: "{{ ansible_user }}"
-  when: "'ent.ad.ntrs.com' in ticket_description"
+  when: "'domain.organization.com' in ticket_description"
 
 - name: wintel password
   set_fact:
     sql_password: "{{ ansible_password }}"
-  when: "'ent.ad.ntrs.com' in ticket_description"  
+  when: "'domain.organization.com' in ticket_description"  
 
 - name: ansible_user
   debug:
@@ -73,11 +73,11 @@
   block:
     - name: task to find app owners DL
       import_tasks: find_to_address.yml
-      delegate_to: "{{ server_winshell }}.ENT.AD.NTRS.COM"  
+      delegate_to: "{{ server_winshell }}.DOMAIN.ORGANIZATION.COM"  
 
     - name: task to call mssql playbook to run commands
       import_tasks: mssql_block.yml
-      delegate_to: "{{ server_winshell }}.ENT.AD.NTRS.COM"  
+      delegate_to: "{{ server_winshell }}.DOMAIN.ORGANIZATION.COM"  
 
     - name: posting the output from custom module for MS Block
       include_role:
@@ -109,7 +109,7 @@
 
       - name: task to find app owners DL
         import_tasks: find_to_address.yml
-        delegate_to: "{{ server_winshell }}.ENT.AD.NTRS.COM"   
+        delegate_to: "{{ server_winshell }}.DOMAIN.ORGANIZATION.COM"   
 
       - name: posting the error of find_to_address playbook
         when: to_address_error is defined and to_address_error != ''
@@ -122,7 +122,7 @@
 
       - name: task to call mssql playbook to run commands
         import_tasks: mssql_block.yml
-        delegate_to: "{{ server_winshell }}.ENT.AD.NTRS.COM"  
+        delegate_to: "{{ server_winshell }}.DOMAIN.ORGANIZATION.COM"  
 
       - name: posting the work notes of custom module
         include_role:
@@ -154,7 +154,7 @@
       - name: send mail if no blocking found
         when: "'Blocking has not found' in msblock_output"
         import_tasks: send_email_no_blocking_found.yml
-        delegate_to: "{{ server_winshell }}.ENT.AD.NTRS.COM" 
+        delegate_to: "{{ server_winshell }}.DOMAIN.ORGANIZATION.COM" 
 
 
     - name: Iteration 3
@@ -180,7 +180,7 @@
     
       - name: task to find app owners DL
         import_tasks: find_to_address.yml
-        delegate_to: "{{ server_winshell }}.ENT.AD.NTRS.COM"  
+        delegate_to: "{{ server_winshell }}.DOMAIN.ORGANIZATION.COM"  
 
       - name: posting the error of find_to_address playbook
         when: to_address_error is defined and to_address_error != ''
@@ -193,7 +193,7 @@
 
       - name: task to call mssql playbook to run commands
         import_tasks: mssql_block.yml
-        delegate_to: "{{ server_winshell }}.ENT.AD.NTRS.COM"  
+        delegate_to: "{{ server_winshell }}.DOMAIN.ORGANIZATION.COM"  
 
       - name: posting the work notes of custom module
         include_role:
@@ -225,7 +225,7 @@
       - name: send mail if no blocking found
         when: "'Blocking has not found' in msblock_output"
         import_tasks: send_email_no_blocking_found.yml
-        delegate_to: "{{ server_winshell }}.ENT.AD.NTRS.COM" 
+        delegate_to: "{{ server_winshell }}.DOMAIN.ORGANIZATION.COM" 
 
     - name: Iteration 4
       when: "'Blocking has not found' not in msblock_output"    
@@ -257,7 +257,7 @@
         
       - name: task to find app owners DL
         import_tasks: find_to_address.yml
-        delegate_to: "{{ server_winshell }}.ENT.AD.NTRS.COM"  
+        delegate_to: "{{ server_winshell }}.DOMAIN.ORGANIZATION.COM"  
 
       - name: posting the error of find_to_address playbook
         when: to_address_error is defined and to_address_error != ''
@@ -270,7 +270,7 @@
 
       - name: task to call mssql playbook to run commands
         import_tasks: mssql_block.yml
-        delegate_to: "{{ server_winshell }}.ENT.AD.NTRS.COM"  
+        delegate_to: "{{ server_winshell }}.DOMAIN.ORGANIZATION.COM"  
 
       - name: posting the work notes of custom module
         include_role:
@@ -311,7 +311,7 @@
       - name: send mail if no blocking found
         when: "'Blocking has not found' in msblock_output"
         import_tasks: send_email_no_blocking_found.yml
-        delegate_to: "{{ server_winshell }}.ENT.AD.NTRS.COM" 
+        delegate_to: "{{ server_winshell }}.DOMAIN.ORGANIZATION.COM" 
 
     - include_role:
         name: servicenow_inc

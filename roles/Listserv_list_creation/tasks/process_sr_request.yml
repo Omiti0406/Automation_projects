@@ -78,7 +78,7 @@
     
   - name: task to find app owners DL
     import_tasks: folder_creation.yml
-    delegate_to: "wpcholu01.ENT.AD.NTRS.COM"  
+    delegate_to: "{{ hostvars[inventory_hostname]['ansible_host'] }}"  
 
   - name: task to find app owners DL
     import_tasks: list_creation_send_email.yml

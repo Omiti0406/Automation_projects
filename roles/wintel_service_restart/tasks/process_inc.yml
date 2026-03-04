@@ -46,7 +46,7 @@
   block:
     - name: task to check split service name
       import_tasks: split_service_name.yml
-      delegate_to: "wpcmxsp05.ENT.AD.NTRS.COM" 
+      delegate_to: "{{ hostvars[inventory_hostname]['ansible_host'] }}" 
     
     - name: Update the output in the worknotes  
       include_role:

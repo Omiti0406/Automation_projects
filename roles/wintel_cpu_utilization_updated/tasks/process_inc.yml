@@ -44,7 +44,7 @@
     - wait_for_connection:
         timeout: 10
       register: conncheck
-      delegate_to: "{{ server }}.ENT.AD.NTRS.COM"  
+      delegate_to: \"{{ server }}.DOMAIN.ORGANIZATION.COM\"  
   rescue:
     - include_role:
         name: servicenow_inc
@@ -58,7 +58,7 @@
   block:
   
     - import_tasks: cpu_utilization.yml
-      delegate_to: "{{ server }}.ENT.AD.NTRS.COM"
+      delegate_to: \"{{ server }}.DOMAIN.ORGANIZATION.COM\"
 
     - name: posting the top 3 processes at 30 seconds interval 3 times
       when: ((process_type_output is defined) or (process_type_output != ""))

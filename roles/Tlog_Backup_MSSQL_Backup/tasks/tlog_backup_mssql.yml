@@ -66,7 +66,7 @@
                         $msg = "Exception Occurred in Start Segment While, " + $Excep + ":- " + $ErrMsg.ToString()
                         Write-Host $msg -ForegroundColor Magenta
                     }
-    delegate_to: "{{ sql_server }}.ENT.AD.NTRS.COM"
+    delegate_to: "{{ sql_server }}.DOMAIN.ORGANIZATION.COM"
     register: LogContent 
 
   - name: backup output
@@ -130,7 +130,7 @@
                         $msg = "Exception Occurred in Start Segment While, " + $Excep + ":- " + $ErrMsg.ToString()
                         Write-Host $msg -ForegroundColor Magenta
                     }
-    delegate_to: "{{ sql_server }}.ENT.AD.NTRS.COM"
+    delegate_to: "{{ sql_server }}.DOMAIN.ORGANIZATION.COM"
     register: backup_status_check
       
   - name: backup output

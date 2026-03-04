@@ -2,7 +2,7 @@
   block:
     - name: update back the startTime to db
       mssql_db_conn:
-        db_host: "wpcholu006.ent.ad.ntrs.com"
+        db_host: "<database_server>"
         db_name: "Ansible_AWX"
         username: ""
         password: ""
@@ -24,7 +24,7 @@
   block:
     - name: update back the endTime to db
       mssql_db_conn:
-        db_host: "wpcholu006.ent.ad.ntrs.com"
+        db_host: "<database_server>"
         db_name: "Ansible_AWX"
         username: ""
         password: ""

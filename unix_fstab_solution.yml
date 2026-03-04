@@ -5,7 +5,6 @@
 #                       for Unix FSTAB, it'll process the INCs 
 #                       and perform the defined automation executions.
 # Version: v1.0
-# Developer: Kajal Kumari(Kajal.kumari11@wipro.com)
 ###################################################################################
 - hosts: localhost
   gather_facts: no

@@ -2,8 +2,8 @@
   block:
   - win_shell: 
               |
-               $ServerName = "{{server}}.ENT.AD.NTRS.COM" 
-                $AppOwnerfile="\\sdcholp003\HO_21.4.0_Solutions\MSSQL_USE_CASES\MSSQL_Diskfree_Space\AppOwnerList.csv"
+               $ServerName = "{{server}}.ENT.AD.ORGANIZATION.COM" 
+                $AppOwnerfile="\\<network_share>\<solutions_path>\MSSQL_USE_CASES\MSSQL_Diskfree_Space\AppOwnerList.csv"
                 $InputObjects = @(Import-Csv $AppOwnerfile -ErrorAction Stop);
                 $ToAddress= $InputObjects |Where-Object {$_.ServerName -Contains $ServerName} |Select-Object -ExpandProperty Email
                 $ToAddress
@@ -16,7 +16,7 @@
   
   - name: Set fact of to_address
     set_fact:
-      to_address: "GDP_OPS_MSSQL@ntrs.com,ACR_Support@ntrs.com,InfoSecAppSupport@ntrs.com,SharePoint_Infra_Support@ntrs.com,SQM_-_APV@ntrs.com,TAX_IT_Support@ntrs.com,GAM_and_ASM_Systems_Support@ntrs.com,PRS_Support@ntrs.com,MS_Prod_Support@ntrs.com,BAP_DevOps@ntrs.com,Risk_Systems_Support_Mailbox@ntrs.com,ISS_FX_Support@NTRS.COM,GFA_L1_Support@ntrs.com,Treasury_Passport_Support@ntrs.com,EMS_Business_Intel_Tech@ntrs.com,DF_Business_Intelligence_Technology@ntrs.com,EMS_Business_Intel_Tech@ntrs.com,eGain_and_IVR_IT_Support@ntrs.com,EMS_Code_Migration@ntrs.com,Entitlements_Inquiry@ntrs.com,CDRDevTeam@ntrs.com,London_Application_Projects__Support@ntrs.com,Compliance_Systems_Support_Mailbox@ntrs.com,TRC_Support@ntrs.com,NATS-EUC-MobileInfrastructure@ntrs.com,Cisco_Voice_Support@ntrs.com,VulnerabilityManagement@ntrs.com,Mainframe_Support_IBM_-_DB2@ntrs.com,DCPSupport@ntrs.com,DDM_Support_Team@ntrs.com,EMS_dotNET@ntrs.com,Multimedia_Support@ntrs.com,EMS_Azure_DevOps@ntrs.com,SQM_-_Tools@ntrs.com,EDM_Support@ntrs.com,Banking_Systems_Support@ntrs.com,ISS_Eagle_Prod_Support@ntrs.com,LAPS_Support@ntrs.com,Endpoint_Protection_Support@ntrs.com,EQP_Support@ntrs.com,NATS_Print_Services@ntrs.com,ISS_QM_Support@ntrs.com,GFA_L1_Support@ntrs.com,EMS_Evolven@ntrs.com,EWM_Support@ntrs.com,FACSys_Support@ntrs.com,FND_Systems@ntrs.com,NAFeeTeam@ntrs.com,Fees-Systems-Support@ntrs.com,Trade_Services_Prod_Support_mailbox@ntrs.com,ISS_FX_Support@NTRS.COM; ,FXSupport@ntrs.com,C&IS_GSD_APP_PRD@ntrs.com,Grr_etl@ntrs.com,GRR_Infra_project_team@ntrs.com,Omnium_Support_Reconciliation_and_Control@ntrs.com,Omnium_Reconciliation_Dev@ntrs.com,EM191@ntrs.com,Omnium_IRAS_Dev@ntrs.com,Omnium_IRAS_IOO_Dev@ntrs.com,EMS_Holmes@ntrs.com,IT_Eng_EMS_Holmes_EPA@ntrs.com,HPA-Support@ntrs.com,IAA-Insurance_Accounting_Support@ntrs.com,IFC_Support@ntrs.com,Banking_Desktop_Support_Team@ntrs.com,TBR_Support@ntrs.com,LAPS_TEAM@NTRS.COM,GFA_L1_Support@ntrs.com,FND_Systems@ntrs.com,InvestranSystemsNotify@ntrs.com,WGS-Business_App_Support_Team@ntrs.com,KTA_Support@ntrs.com,messagingarchitecture@ntrs.com, MessagingSupport@ntrs.com,MS_Ops@ntrs.com,Platform_Engineering_-_Mobile@ntrs.com,fxsupport@ntrs.com; ISS_FX_Support@NTRS.COM,Risk_Systems_Support_Offshore@ntrs.com,MSF_Development@ntrs.com,EMS_SCOM@ntrs.com,IT_ENG_EMS_SCOM@ntrs.com,Messaging_Support_Team_Mailbox@ntrs.com,ISS_NTSGB_Support@ntrs.com,NFS_STAFF@ntrs.com; TA_Support@ntrs.com,Pop_developers@ntrs.com,Ireland_TA_IT@ntrs.com,WebPublishing@ntrs.com,SQM_-_Tools@ntrs.com,QRM_Support@ntrs.com,NTAG_Support@ntrs.com,MRR_Development@ntrs.com,NATS-EUC-EnterpriseSolutions@ntrs.com,RXP_Support@ntrs.com,DCTS-VMWare@ntrs.com,InfoSecAppSupport@ntrs.com,InfoSec_Authentication_Support@ntrs.com,EMS_Architecture_Security@ntrs.com,IT_Eng_EMS_Security@ntrs.com,ServiceNXT_GoLive@ntrs.com,AIX-Systems@ntrs.com,Treasury_Support@ntrs.com,IRAS_Risk_and_Compliance_Application_Support@ntrs.com,Verintsupport@ntrs.com,EMS_Vayusphere@ntrs.com,NETWORK_SUPPORT_-_SolarWinds@ntrs.com,IT_Eng_VMWare@ntrs.com"
+      to_address: "{{ lookup('env', 'MSSQL_SUPPORT_EMAILS', default='support.team@organization.com') }}"
     when: to_address_op.stdout_lines == [] 
 
   - name: Set fact of to_address

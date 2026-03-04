@@ -4,8 +4,6 @@
 # Playbook description: This playbook will read the data from CSV file and call 
 #                       the other main template
 # Version: v1.0
-# Developer: Mayur Matey
-# Org: Wipro
 ###################################################################################
 - hosts: localhost
   gather_facts: no
@@ -28,7 +26,7 @@
 
     - name: calling another template
       uri:    
-       url: "https://awx.wrkld-awx-1-prod.k8s.ntrs.com/api/v2/job_templates/{{ template_id }}/launch/"
+       url: "https://awx.organization.com/api/v2/job_templates/{{ template_id }}/launch/"
        method: POST
        validate_certs: no
        return_content: yes

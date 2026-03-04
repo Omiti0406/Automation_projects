@@ -18,7 +18,7 @@
 
   - name: Setting Partner email id
     set_fact:
-      partner_email: "{{login}}@ntrs.com" 
+      partner_email: "{{login}}@organization.com" 
 
     # To check verify the fetched inputs and update the ticket incase of insufficient data.
   - name: update the ticket if the inputs are not being pulled properly

@@ -50,7 +50,7 @@
 - name: Checking server connectivity 
   block:
   - wait_for:
-      host: "{{sql_server}}.ENT.AD.NTRS.COM"
+      host: "{{sql_server}}.DOMAIN.ORGANIZATION.COM"
       port: 5985
       timeout: 10
     register: connCheck 
@@ -67,7 +67,7 @@
   when: ((sql_server is defined) or (sql_server != "")) and (connCheck is succeeded)
   block:      
     - import_tasks: tlog_backup_mssql.yml
-      delegate_to: "{{ sql_server }}.ENT.AD.NTRS.COM"
+      delegate_to: "{{ sql_server }}.DOMAIN.ORGANIZATION.COM"
         
     - name: updating the backup status - Iteration 1
       include_role:
@@ -96,7 +96,7 @@
 
     - name: Iteration 2 - Execute PS script 
       import_tasks: tlog_backup_mssql.yml
-      delegate_to: "{{ sql_server }}.ENT.AD.NTRS.COM"
+      delegate_to: "{{ sql_server }}.DOMAIN.ORGANIZATION.COM"
 
     - name: iteration 2 - update and close the ticket if backup successful
       include_role:
@@ -127,7 +127,7 @@
     - name: Iteration 3 - Execute PS script as earlier backup got failed
       import_tasks: tlog_backup_mssql.yml
       when: (backup_status_check_output is defined and backup_status_check_output !="" and 'Fail' in backup_status_check_output ) 
-      delegate_to: "{{ sql_server }}.ENT.AD.NTRS.COM"
+      delegate_to: "{{ sql_server }}.DOMAIN.ORGANIZATION.COM"
 
     - name: iteration 3 - update and close the ticket if backup successful
       include_role:

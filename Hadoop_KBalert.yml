@@ -5,9 +5,6 @@
 # Playbook description: This playbook will fetch the INC tickets from ServiceNow  
 #                       and call the process_inc.yml playbook to process indivdual 
 #                       tickets.
-# 
-# Developer: Mayur Matey(mayur.matey@wipro.com)
-# Org: Wipro
 ###################################################################################
 - hosts: localhost
   gather_facts: no

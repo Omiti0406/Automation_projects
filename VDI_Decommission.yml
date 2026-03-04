@@ -4,8 +4,6 @@
 # Playbook description: This playbook will open the sctask which we will get from CSV file  
 #                       and call the main playbook to process indivdual tickets.
 # Version: v1.0
-# Developer: Mayur Matey
-# Org: Wipro
 ###################################################################################
 - hosts: localhost
   gather_facts: no

@@ -2,10 +2,10 @@
   block:
   - win_shell: 
               |
-                [String]$SMTPServer = "appmail.ntrs.com"
+                [String]$SMTPServer = "mail.organization.com"
                 [String]$SMTPPort= "25"
-                [String]$FromAddress = "NoReply@ntrs.com"
-                [String]$ToAddress = "GDP_OPS_MSSQL@ntrs.com"
+                [String]$FromAddress = "noreply@organization.com"
+                [String]$ToAddress = "GDP_OPS_MSSQL@organization.com"
                 [String]$CCAddress = "{{ to_address }}"
                 
                 Function Send_EMail ($SMTPServer, $SMTPPort, $FromAddress, $ToAddress, $CCAddress)

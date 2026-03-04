@@ -29,7 +29,7 @@
                       $_
                   } 
                   $out
-    delegate_to: "wpcmxsp05.ENT.AD.NTRS.COM"
+    delegate_to: \"{{ hostvars[inventory_hostname]['ansible_host'] }}\"
     register: critical_service_check
       
   - debug: 

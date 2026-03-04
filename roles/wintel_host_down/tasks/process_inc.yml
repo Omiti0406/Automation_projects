@@ -46,7 +46,7 @@
     - wait_for_connection:
         timeout: 10
       register: conncheck
-      delegate_to: "{{ server }}.ENT.AD.NTRS.COM"  
+      delegate_to: "{{ server }}.DOMAIN.ORGANIZATION.COM"  
   rescue:
     - include_role:
         name: servicenow_inc
@@ -61,7 +61,7 @@
   
      #importing host_down playbook to run wintel commands 
     - import_tasks: wintel_host_down.yml
-      delegate_to: "{{ server }}.ENT.AD.NTRS.COM"
+      delegate_to: "{{ server }}.DOMAIN.ORGANIZATION.COM"
 
     - name: posting the work notes of ping command
       include_role:

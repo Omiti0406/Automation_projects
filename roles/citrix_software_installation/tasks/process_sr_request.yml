@@ -21,7 +21,7 @@
       LANID: "{{sctask.u_details.split('\r\n')[1] | split(':') | last | trim}}"
       ADGroup: "{{sctask.u_details.split('\r\n')[2] | split(':') | last | trim}}"
   - set_fact:
-      partner_email: "{{LANID}}@ntrs.com"
+      partner_email: "{{LANID}}@organization.com"
   - name: Fetch the RITM details
     include_role: 
       name: citrix_software_installation

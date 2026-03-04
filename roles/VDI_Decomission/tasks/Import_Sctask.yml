@@ -17,7 +17,7 @@
                                     State = ''
                         } 
                                 
-          $Csv_File = "\\WPCHOLU01\Ansible Solutions\VDI_Sctask\VDI_Sctask.csv"
+          $Csv_File = "\<network_share>\Ansible Solutions\VDI_Sctask\VDI_Sctask.csv"
           $Properties.Request_Number = "{{sctaskNo}}"
           $Properties.Creation_Date = "{{Created_on}}"
           $Properties.State = "{{State}}"

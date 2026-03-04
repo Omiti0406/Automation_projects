@@ -38,7 +38,7 @@
         tasks_from: success
       vars:
         sr_number: "{{sctaskNo}}"
-        resolve_message: "Cisco Jabber has been deprecated and replaced by the Webex application, which is installed on every Windows PC by default.\n\nYou can find it in Start > Webex > Webex, or if you can't find it, install it from the Software Center.\n\nFor any further assistance, please contact cisco_voice_support@ntrs.com"
+        resolve_message: "Cisco Jabber has been deprecated and replaced by the Webex application, which is installed on every Windows PC by default.\n\nYou can find it in Start > Webex > Webex, or if you can't find it, install it from the Software Center.\n\nFor any further assistance, please contact cisco_voice_support@organization.com"
       
     - name: Adding ticket as successfully executed list
       set_fact:

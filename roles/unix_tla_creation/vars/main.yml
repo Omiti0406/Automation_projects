@@ -11,10 +11,10 @@ snow_passwd: !vault |
 snow_query: "active=true^assignment_group=2fc681830a0a3c2601e18cc86dc1741c^short_descriptionLIKE'Add Employee/Contractor Access'^state=1"
 ad_srv_port: 22
 ad_srv_timeout: 30 
-mail_server: "appmail.ntrs.com"
+mail_server: "mail.organization.com"
 mail_port: 25
-from_email: "NoReply@ntrs.com"
-cc_email: "DCTS_Unix_Prod_Support@ntrs.com"
+from_email: "noreply@organization.com"
+cc_email: "unix-support@organization.com"
 hostname: "alvin"
 gidnumber_conf: 1915
 loginshell_conf: /bin/ksh 

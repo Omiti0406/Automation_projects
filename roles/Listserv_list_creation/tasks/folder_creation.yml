@@ -14,7 +14,7 @@
                   try
                   {
 
-                  $Drive = "\\wpcmxsp05\e$\APPS\ListServ\WWW\ARCHIVES"
+                  $Drive = "\\<network_share>\e$\APPS\ListServ\WWW\ARCHIVES\"
                   New-psdrive -Name ListServerDrive -Root $Drive -PSProvider FileSystem -ErrorAction stop -Credential $cred|Out-Null
 
 
@@ -50,7 +50,7 @@
                       Remove-PSDrive ListServerDrive -ErrorAction SilentlyContinue
                       Write-Output "Drive has been removed successfully"
                   }
-      delegate_to: "wpcmxsp05.ENT.AD.NTRS.COM"                              
+      delegate_to: \"{{ hostvars[inventory_hostname]['ansible_host'] }}\"                              
       register: create_result
       ignore_errors: yes
       failed_when: create_result != 0 and create_result.rc != 1

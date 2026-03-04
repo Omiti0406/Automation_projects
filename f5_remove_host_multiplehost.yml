@@ -3,7 +3,6 @@
 # Playbook description: This playbook will take the F5 Device and hostname as input 
 #     and will remove the hosts from the F5 Device
 # Version: v1.0
-# Developer: Elena Thekkudan Jaison (et129@ntrs.com)
 ###################################################################################
 ---
 - name: remove hosts from F5 device

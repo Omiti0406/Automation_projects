@@ -5,7 +5,6 @@
 #                       and call the process_inc.yml playbook to process indivdual 
 #                       tickets.
 # Version: v1.0
-# Developer: Kalaiarasi Balasubramanian (kb471@ntrs.com)
 ###################################################################################
 - hosts: localhost
   gather_facts: no

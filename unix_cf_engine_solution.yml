@@ -5,7 +5,6 @@
 #                       for Unix NFS MountPoint, it'll process the INCs 
 #                       and perform the defined automation executions.
 # Version: v1.0
-# Developer: KAJAL KUMARI(kajal.kumari11@wipro.com)
 ###################################################################################
 - hosts: localhost
   gather_facts: no

@@ -25,7 +25,7 @@
       msg: "{{tlalist}}"
 
   - set_fact:
-      partner_email: "{{LAN_ID}}@ntrs.com" 
+      partner_email: "{{LAN_ID}}@organization.com" 
 
   # When script is not able to fetch the input details from the ticket
   rescue:

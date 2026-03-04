@@ -5,7 +5,6 @@
 #                       for Network CPU Utilization, it'll process the INCs 
 #                       and perform the defined automation executions.
 # Version: v1.0
-# Developer: Omprakash Tiwari(omprakash.tiwari@wipro.com)
 ###################################################################################
 - hosts: localhost
   gather_facts: no

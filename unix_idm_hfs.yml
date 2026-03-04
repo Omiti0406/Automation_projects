@@ -4,8 +4,6 @@
 # Playbook description: This playbook will fetch the SR tickets from ServiceNow  
 #                       and call the main playbook to process indivdual tickets.
 # Version: v1.0
-# Developer: Himanshu Sadanand Bhosale(himanshu.bhosale@wipro.com)
-# Org: Wipro
 ###################################################################################
 - hosts: localhost
   gather_facts: no

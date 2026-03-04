@@ -5,7 +5,6 @@
 #                       for WINTEL C DRIVE CLEANUP, it'll process the INCs 
 #                       and perform the defined automation executions.
 # Version: v1.0
-# Developer: Pratiti Srivastava(pratiti.srivastava@wipro.com)
 ###################################################################################
 - hosts: localhost
   gather_facts: no

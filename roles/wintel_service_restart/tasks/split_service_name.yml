@@ -2,9 +2,9 @@
   block:
   - name: Split Service Name
     win_shell: |
-                <#The Windows Server service on server SDCBAKP18.ent.ad.ntrs.com has stopped running
-                The DHCP service on server WPCDNTD005.ent.ad.ntrs.com has stopped running
-                The DNS service on server WPCEDDU01.ent.ad.ntrs.com has stopped running#>
+                <#The Windows Server service on server SERVER1.DOMAIN.ORGANIZATION.COM has stopped running
+                The DHCP service on server SERVER2.DOMAIN.ORGANIZATION.COM has stopped running
+                The DNS service on server SERVER3.DOMAIN.ORGANIZATION.COM has stopped running#>
 
                 $string= "{{ Description }}"
                 if($string.Contains("Windows Server"))
@@ -29,7 +29,7 @@
                 echo "Not exist"
                 }
                 
-    delegate_to: "wpcmxsp05.ENT.AD.NTRS.COM" 
+    delegate_to: \"{{ hostvars[inventory_hostname]['ansible_host'] }}\" 
     register: string_result
     ignore_errors: true
   - debug: 

@@ -48,7 +48,7 @@
     - wait_for_connection:
         timeout: 60
       register: conncheck
-      delegate_to: "{{ server }}.ENT.AD.NTRS.COM"  
+      delegate_to: "{{ server }}.DOMAIN.ORGANIZATION.COM"  
     - set_fact:
         conncheck_failed: ""    
   rescue:
@@ -61,7 +61,7 @@
     - name: Task to cleam C drive
       when: "'C:' in ticket_description"
       import_tasks: wintel_cdrive_disk_cleanup.yml
-      delegate_to: "{{ server }}.ENT.AD.NTRS.COM"
+      delegate_to: "{{ server }}.DOMAIN.ORGANIZATION.COM"
 
     - name: Update the output of the executed commands on the ticket.
       include_role:
@@ -130,7 +130,7 @@
     - name: task to find SQL Server
       when: (server is defined) and (server != "") and (CDrive_cleanup_result_output is not defined) and (CDrive_cleanup_result_output == "")
       import_tasks: find_SQL_Server.yml
-      delegate_to: "{{ server }}.ENT.AD.NTRS.COM"
+      delegate_to: "{{ server }}.DOMAIN.ORGANIZATION.COM"
       
     - name: comments added for manual checking  
       include_role:

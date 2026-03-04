@@ -15,7 +15,7 @@
 
       Please follow the below steps to reset your LAN ID password :
 
-      1. Go to the  link - https://psynch.ntrs.com/psydb (Password management) `n 
+      1. Go to the  link - https://password-management.organization.com/psydb (Password management) `n 
       2. Enter LAN ID -> Enter LAN Password -> Change Password `n
       3. Select Unix Store check box while changing the password. `n
       4. Login to any of the server after changing the password via SSH. `n

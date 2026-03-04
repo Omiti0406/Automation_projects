@@ -3,8 +3,6 @@
 # Usecase Name: Unregister VDI
 # Playbook description: This playbook will call the Unregister_VDI_CSV_File playbook
 # Version: v1.0
-# Developer: Mayur Matey
-# Org: Wipro
 ###################################################################################
 - hosts: localhost
   gather_facts: no

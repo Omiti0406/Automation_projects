@@ -93,7 +93,7 @@
   when: (User_output is defined and User_output |regex_search('is disabled') == 'is disabled' )
   block:
   - set_fact:
-      LANid: "{{LANID + '@ntrs.com'}}"
+      LANid: "{{LANID + '@organization.com'}}"
 
       
   - name: Execute powershell script 

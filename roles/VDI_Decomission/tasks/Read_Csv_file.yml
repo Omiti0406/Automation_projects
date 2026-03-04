@@ -2,7 +2,7 @@
   block:
   - name: Fetch the sctask
     win_shell: |
-          $Csv_file = Import-Csv -Path "\\WPCHOLU01\Ansible Solutions\VDI_Sctask\VDI_Sctask.csv"  
+          $Csv_file = Import-Csv -Path "\<network_share>\Ansible Solutions\VDI_Sctask\VDI_Sctask.csv"
           $today = (Get-Date).AddDays(-3)
               foreach($Csv_Data in $Csv_file)
               {   
@@ -17,7 +17,7 @@
 
                 }
               }
-              $Csv_file | Export-Csv -Path "\\WPCHOLU01\Ansible Solutions\VDI_Sctask\VDI_Sctask.csv" -NoTypeInformation     
+              $Csv_file | Export-Csv -Path "\<network_share>\Ansible Solutions\VDI_Sctask\VDI_Sctask.csv" -NoTypeInformation
               write-host $Exports
       
     delegate_to: "{{Windows_host1}}" 

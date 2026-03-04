@@ -4,8 +4,6 @@
 # Playbook description: This playbook will fetch the SR tickets from ServiceNow  
 #                       and call the Import Sctask playbook to import the sctask in CSV
 # Version: v1.0
-# Developer: Mayur Matey
-# Org: Wipro
 ###################################################################################
 - hosts: localhost
   gather_facts: no
